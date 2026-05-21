@@ -1,0 +1,88 @@
+# RiyalAI
+
+AI-powered personal expense tracking built with AWS CDK and React.
+
+RiyalAI is a clean, standalone expense tracker extracted from a larger project. It lets authenticated users create, view, filter, and manage expenses, upload receipt images, and track recurring monthly costs.
+
+## Features
+
+- Expense CRUD with Cognito authentication
+- Dashboard with spending stats, filters, and sorting
+- Receipt upload to S3 with presigned URLs
+- Recurring expense tracking
+- Receipt OCR pipeline (Textract) — scaffolded for AI extraction
+- CloudFront-hosted React frontend
+
+## Project Structure
+
+```
+RiyalAI/
+├── app.py                  # CDK entry point
+├── riyalai/
+│   └── riyalai_stack.py    # AWS infrastructure
+├── functions/
+│   ├── expense_app.py      # Main API Lambda
+│   ├── receipt_ocr/        # Textract OCR
+│   ├── receipt_processor/  # AI receipt analysis (stub)
+│   ├── receipt_image_processor/
+│   └── spending_analysis/
+├── frontend/               # React app
+└── tests/
+```
+
+## Prerequisites
+
+- Python 3.12+
+- Node.js 16+
+- AWS CLI configured
+- AWS CDK CLI (`npm install -g aws-cdk`)
+
+## Quick Start
+
+```bash
+cd RiyalAI
+
+# Backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Frontend
+cd frontend && npm install && cd ..
+
+# Deploy
+cdk bootstrap
+cdk deploy
+
+# After deploy, copy outputs into frontend/.env
+cp frontend/.env.example frontend/.env
+# Set REACT_APP_API_URL, REACT_APP_USER_POOL_ID, REACT_APP_USER_POOL_CLIENT_ID
+
+cd frontend && npm run build && cd ..
+cdk deploy   # redeploy to push frontend build
+```
+
+## API Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/expenses/health` | No | Health check |
+| GET | `/expenses` | Yes | List user expenses |
+| POST | `/expenses` | Yes | Create expense |
+| GET | `/expenses/{id}` | Yes | Get expense |
+| PUT | `/expenses/{id}` | Yes | Update expense |
+| DELETE | `/expenses/{id}` | Yes | Delete expense |
+| GET | `/expenses/recurring` | Yes | List recurring expenses |
+| POST | `/expenses/{id}/recurring` | Yes | Toggle recurring |
+| GET | `/expenses/analytics` | Yes | Spending analytics |
+| POST | `/upload` | Yes | Get presigned S3 upload URL |
+
+## Testing
+
+```bash
+pytest
+```
+
+## License
+
+MIT
