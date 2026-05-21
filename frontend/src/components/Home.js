@@ -58,7 +58,8 @@ const Home = ({ user, onSignOut }) => {
 
       <div className="header-bar">
         <div>
-          <p className="tagline">مالك، في يدك</p>
+          <p className="tagline">ريالي · ryialAI</p>
+          <p className="text-secondary" style={{ fontSize: '0.8rem', marginBottom: 4 }}>مالك، في يدك</p>
           <h1 className="page-title">{getGreeting()}، {user.username}</h1>
         </div>
         <button type="button" className="sign-out-btn" onClick={onSignOut}>خروج</button>

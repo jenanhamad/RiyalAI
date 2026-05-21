@@ -31,10 +31,10 @@ const LocalAuth = ({ onAuthenticated }) => {
   return (
     <div className="auth-screen">
       <div className="auth-logo">
-        <h1>ريـال</h1>
+        <h1>ريالي</h1>
         <p className="tagline">مالك، في يدك</p>
         <p className="text-secondary" style={{ marginTop: 8, fontSize: '0.85rem' }}>
-          Riyal · Saudi financial gamification
+          ryialAI
         </p>
       </div>
 

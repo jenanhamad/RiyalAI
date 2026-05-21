@@ -32,7 +32,7 @@ def chat_completion(messages, model=None, max_tokens=1024, temperature=0.3):
             "Authorization": f"Bearer {_api_key()}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://riyalai.app",
-            "X-Title": "RiyalAI",
+            "X-Title": "ryialAI",
         },
         method="POST",
     )

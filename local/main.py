@@ -1,5 +1,5 @@
 """
-RiyalAI local API server — run without AWS.
+ريالي (ryialAI) local API server — run without AWS.
 
   cd local && pip install -r requirements.txt
   cp .env.example .env   # add OPENROUTER_API_KEY
@@ -40,7 +40,7 @@ SERVE_FRONTEND = os.environ.get("SERVE_FRONTEND", "1") == "1" and STATIC_DIR.is_
 BASE_URL = os.environ.get("PUBLIC_URL", os.environ.get("LOCAL_API_URL", "http://localhost:8000"))
 PORT = int(os.environ.get("PORT", "8000"))
 
-app = FastAPI(title="RiyalAI Local API")
+app = FastAPI(title="ريالي ryialAI API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,7 +57,7 @@ def root():
     if SERVE_FRONTEND:
         return FileResponse(STATIC_DIR / "index.html")
     return {
-        "service": "RiyalAI API",
+        "service": "ريالي ryialAI API",
         "status": "ok",
         "health": "/expenses/health",
         "docs": "/docs",
