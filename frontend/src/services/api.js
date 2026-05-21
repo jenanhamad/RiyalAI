@@ -1,14 +1,12 @@
-import { fetchAuthSession } from 'aws-amplify/auth';
 import axios from 'axios';
+import { getLocalToken } from './localAuth';
+import { getApiBase } from '../config/apiBase';
 
-const API_BASE = process.env.REACT_APP_API_URL || '';
+const API_BASE = getApiBase();
 
 async function authHeaders() {
-  const session = await fetchAuthSession();
-  const token = session.tokens?.idToken?.toString();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
+  const token = getLocalToken();
+  if (!token) throw new Error('Not authenticated');
   return { Authorization: `Bearer ${token}` };
 }
 
@@ -62,6 +60,39 @@ export const api = {
       { expenseId, filename, contentType },
       { headers }
     );
+  },
+
+  getProfile: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/profile`, { headers });
+  },
+
+  getChallenges: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/challenges`, { headers });
+  },
+
+  generateChallenges: async () => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/challenges/generate`, {}, { headers });
+  },
+
+  claimChallenge: async (challengeId) => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/challenges/${challengeId}/claim`, {}, { headers });
+  },
+
+  getLeaderboard: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/leaderboard`, { headers });
+  },
+
+  voiceExpense: async (audioBase64, mimeType = 'audio/webm', transcription = null) => {
+    const headers = await authHeaders();
+    const payload = transcription
+      ? { transcription, mimeType }
+      : { audioBase64, mimeType };
+    return axios.post(`${API_BASE}/voice/expense`, payload, { headers, timeout: 90000 });
   },
 };
 

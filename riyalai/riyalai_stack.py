@@ -10,10 +10,13 @@ from aws_cdk import (
     aws_cloudfront_origins as origins,
     aws_s3_deployment as s3_deployment,
     aws_cognito as cognito,
+    aws_events as events,
+    aws_events_targets as targets,
     RemovalPolicy,
     aws_iam as iam,
     CfnOutput,
 )
+import os
 from constructs import Construct
 
 
@@ -75,6 +78,28 @@ class RiyalAiStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
         )
 
+        users_table = ddb.Table(
+            self, "UsersTable",
+            partition_key=ddb.Attribute(name="userId", type=ddb.AttributeType.STRING),
+            billing_mode=ddb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+
+        challenges_table = ddb.Table(
+            self, "ChallengesTable",
+            partition_key=ddb.Attribute(name="challengeId", type=ddb.AttributeType.STRING),
+            billing_mode=ddb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+        challenges_table.add_global_secondary_index(
+            index_name="UserIdIndex",
+            partition_key=ddb.Attribute(name="userId", type=ddb.AttributeType.STRING),
+            sort_key=ddb.Attribute(name="createdAt", type=ddb.AttributeType.STRING),
+            projection_type=ddb.ProjectionType.ALL,
+        )
+
+        openrouter_api_key = os.environ.get("OPENROUTER_API_KEY", "")
+
         receipts_bucket = s3.Bucket(
             self, "ReceiptsBucket",
             removal_policy=RemovalPolicy.DESTROY,
@@ -105,11 +130,43 @@ class RiyalAiStack(Stack):
             environment={
                 "TABLE_NAME": expenses_table.table_name,
                 "BUCKET": receipts_bucket.bucket_name,
+                "USERS_TABLE_NAME": users_table.table_name,
+                "CHALLENGES_TABLE_NAME": challenges_table.table_name,
+                "OPENROUTER_API_KEY": openrouter_api_key,
+                "OPENROUTER_MODEL": os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3.5-haiku"),
             },
-            timeout=Duration.seconds(30),
+            timeout=Duration.seconds(60),
         )
         expenses_table.grant_read_write_data(api_fn)
+        users_table.grant_read_write_data(api_fn)
+        challenges_table.grant_read_write_data(api_fn)
         receipts_bucket.grant_read_write(api_fn)
+
+        challenge_generator_fn = _lambda.Function(
+            self, "ChallengeGeneratorFunction",
+            runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="challenge_generator.generator.handler",
+            code=_lambda.Code.from_asset("functions"),
+            layers=[deps_layer, powertools_layer],
+            environment={
+                "TABLE_NAME": expenses_table.table_name,
+                "USERS_TABLE_NAME": users_table.table_name,
+                "CHALLENGES_TABLE_NAME": challenges_table.table_name,
+                "OPENROUTER_API_KEY": openrouter_api_key,
+                "OPENROUTER_MODEL": os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3.5-haiku"),
+            },
+            timeout=Duration.seconds(300),
+        )
+        expenses_table.grant_read_data(challenge_generator_fn)
+        users_table.grant_read_write_data(challenge_generator_fn)
+        challenges_table.grant_read_write_data(challenge_generator_fn)
+
+        # Sunday 05:00 UTC (~08:00 Riyadh) — weekly AI challenges
+        events.Rule(
+            self, "WeeklyChallengesRule",
+            schedule=events.Schedule.cron(minute="0", hour="5", week_day="SUN"),
+            targets=[targets.LambdaFunction(challenge_generator_fn)],
+        )
 
         receipt_processor_fn = _lambda.Function(
             self, "ReceiptProcessorFunction",
@@ -261,6 +318,24 @@ class RiyalAiStack(Stack):
 
         upload_resource = api.root.add_resource("upload", default_cors_preflight_options=cors)
         upload_resource.add_method("POST", integration, **auth)
+
+        profile = api.root.add_resource("profile", default_cors_preflight_options=cors)
+        profile.add_method("GET", integration, **auth)
+
+        challenges = api.root.add_resource("challenges", default_cors_preflight_options=cors)
+        challenges.add_method("GET", integration, **auth)
+        challenges_generate = challenges.add_resource("generate", default_cors_preflight_options=cors)
+        challenges_generate.add_method("POST", integration, **auth)
+        challenge_item = challenges.add_resource("{challengeId}", default_cors_preflight_options=cors)
+        challenge_claim = challenge_item.add_resource("claim", default_cors_preflight_options=cors)
+        challenge_claim.add_method("POST", integration, **auth)
+
+        leaderboard = api.root.add_resource("leaderboard", default_cors_preflight_options=cors)
+        leaderboard.add_method("GET", integration, **auth)
+
+        voice = api.root.add_resource("voice", default_cors_preflight_options=cors)
+        voice_expense = voice.add_resource("expense", default_cors_preflight_options=cors)
+        voice_expense.add_method("POST", integration, **auth)
 
         frontend_bucket = s3.Bucket(
             self, "FrontendBucket",

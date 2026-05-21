@@ -1,0 +1,24 @@
+# https://render.com — Blueprint (optional)
+services:
+  - type: web
+    name: riyal
+    runtime: docker
+    plan: free
+    healthCheckPath: /expenses/health
+    envVars:
+      - key: RIYAL_ENV
+        value: production
+      - key: SERVE_FRONTEND
+        value: "1"
+      - key: DATA_DIR
+        value: /app/data
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+    disk:
+      name: riyal-data
+      mountPath: /app/data
+      sizeGB: 1

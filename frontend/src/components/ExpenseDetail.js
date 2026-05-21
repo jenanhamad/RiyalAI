@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { formatRiyal } from '../utils/format';
+import { getCategoryMeta } from '../utils/categories';
 
 const ExpenseDetail = () => {
   const { expenseId } = useParams();
@@ -10,137 +12,77 @@ const ExpenseDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchExpense();
+    api.getExpense(expenseId)
+      .then((res) => setExpense(res.data))
+      .catch((err) => setError(err.response?.data?.error || err.message))
+      .finally(() => setLoading(false));
   }, [expenseId]);
 
-  const fetchExpense = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getExpense(expenseId);
-      setExpense(response.data);
-    } catch (err) {
-      if (err.response?.status === 404) {
-        setError('Expense not found');
-      } else {
-        setError(err.response?.data?.error || 'Failed to load expense details.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this expense?')) return;
-    try {
-      await api.deleteExpense(expenseId);
-      navigate('/');
-    } catch {
-      alert('Failed to delete expense. Please try again.');
-    }
+    if (!window.confirm('حذف هذا المصروف؟')) return;
+    await api.deleteExpense(expenseId);
+    navigate('/');
   };
 
   const toggleRecurring = async () => {
-    try {
-      const response = await api.toggleRecurring(expenseId);
-      setExpense((prev) => ({ ...prev, isRecurring: response.data.isRecurring }));
-    } catch {
-      alert('Failed to update recurring status. Please try again.');
-    }
-  };
-
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
-  const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-  const getCategoryIcon = (category) => {
-    const icons = {
-      'Food & Dining': '🍕', Transportation: '🚗', Shopping: '🛍️', Entertainment: '🎬',
-      Utilities: '💡', Healthcare: '🏥', Groceries: '🛒', Gas: '⛽', Other: '📝',
-    };
-    return icons[category] || '📝';
+    await api.toggleRecurring(expenseId);
+    const res = await api.getExpense(expenseId);
+    setExpense(res.data);
   };
 
   if (loading) {
     return (
-      <div className="expense-detail-container">
-        <div className="loading">Loading expense details...</div>
+      <div className="page loading-screen">
+        <div className="spinner" />
       </div>
     );
   }
 
-  if (error) {
+  if (error || !expense) {
     return (
-      <div className="expense-detail-container">
-        <div className="error">{error}</div>
-        <button onClick={() => navigate('/')} className="back-btn">← Back to Dashboard</button>
+      <div className="page">
+        <div className="error-banner">{error || 'غير موجود'}</div>
+        <Link to="/" className="btn-ghost" style={{ display: 'block', textAlign: 'center', marginTop: 16 }}>← الرئيسية</Link>
       </div>
     );
   }
+
+  const cat = getCategoryMeta(expense.category);
 
   return (
-    <div className="expense-detail-container">
-      <div className="expense-detail-header">
-        <button onClick={() => navigate('/')} className="back-btn">← Back to Dashboard</button>
-        <button onClick={handleDelete} className="delete-btn">🗑️ Delete</button>
+    <div className="page">
+      <Link to="/" className="text-secondary" style={{ fontSize: '0.85rem', textDecoration: 'none' }}>← رجوع</Link>
+
+      <div className="glass-card xp-hero" style={{ marginTop: 16, textAlign: 'center' }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>{cat.icon}</div>
+        <h1 className="page-title" style={{ fontSize: '1.25rem' }}>{expense.merchant}</h1>
+        <p className="font-mono" style={{ fontSize: '2rem', marginTop: 12 }}>{formatRiyal(expense.amount)}</p>
+        <p className="text-secondary" style={{ marginTop: 8 }}>{cat.labelAr} · {expense.date}</p>
       </div>
 
-      <div className="expense-detail-card">
-        {expense.isRecurring && (
-          <div className="recurring-badge">🔄 Recurring Monthly Expense</div>
+      <div className="glass-card" style={{ padding: 16, marginTop: 12 }}>
+        {expense.description && (
+          <p style={{ marginBottom: 12 }}><span className="text-muted">الوصف: </span>{expense.description}</p>
         )}
-
-        <div className="expense-main-info">
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>{getCategoryIcon(expense.category)}</div>
-          <div className="expense-amount-large">{formatCurrency(expense.amount)}</div>
-          <div className="expense-merchant">{expense.merchant || 'Unknown Merchant'}</div>
-          <div className="expense-date">{formatDate(expense.date)}</div>
-          <div className="category-badge">{getCategoryIcon(expense.category)} {expense.category}</div>
-        </div>
-
-        <div className="expense-details-grid">
-          <div className="detail-item">
-            <label>Payment Method</label>
-            <div>{expense.paymentMethod || 'Not specified'}</div>
-          </div>
-          <div className="detail-item">
-            <label>Status</label>
-            <div>{expense.status || 'processed'}</div>
-          </div>
-          {expense.description && (
-            <div className="detail-item full-width">
-              <label>Description</label>
-              <div>{expense.description}</div>
-            </div>
-          )}
-          {expense.notes && (
-            <div className="detail-item full-width">
-              <label>Notes</label>
-              <div>{expense.notes}</div>
-            </div>
-          )}
-        </div>
-
-        {expense.hasReceipt && (
-          <div className="receipt-section">
-            <h3>📄 Receipt Available</h3>
-            {expense.extractedMerchant && (
-              <div className="extracted-info">
-                <div>Merchant: {expense.extractedMerchant}</div>
-                {expense.extractedAmount && <div>Amount: {formatCurrency(expense.extractedAmount)}</div>}
-                {expense.extractedDate && <div>Date: {expense.extractedDate}</div>}
-              </div>
-            )}
-          </div>
+        {expense.notes && (
+          <p style={{ marginBottom: 12 }}><span className="text-muted">ملاحظات: </span>{expense.notes}</p>
         )}
-
-        <div className="expense-actions-row">
-          <button onClick={toggleRecurring} className="btn-primary">
-            {expense.isRecurring ? '❌ Remove Recurring' : '🔄 Mark Recurring'}
-          </button>
-        </div>
+        <p><span className="text-muted">الدفع: </span>{expense.paymentMethod}</p>
+        {expense.isRecurring && <p className="text-green" style={{ marginTop: 8 }}>🔄 مصروف متكرر</p>}
       </div>
+
+      <button type="button" className="btn-ghost" style={{ marginTop: 12 }} onClick={toggleRecurring}>
+        {expense.isRecurring ? 'إلغاء التكرار' : 'جعله متكرر'}
+      </button>
+
+      <button
+        type="button"
+        className="btn-ghost"
+        style={{ marginTop: 8, color: '#FCA5A5', borderColor: 'rgba(239,68,68,0.4)' }}
+        onClick={handleDelete}
+      >
+        حذف المصروف
+      </button>
     </div>
   );
 };

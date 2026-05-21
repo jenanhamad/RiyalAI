@@ -14,6 +14,11 @@ __pycache__/
 node_modules/
 npm-debug.log*
 frontend/build/
+frontend/.env.local
+
+data/
+local/.venv/
+local/.env
 
 .DS_Store
 *.swp

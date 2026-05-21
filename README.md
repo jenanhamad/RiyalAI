@@ -7,10 +7,14 @@ RiyalAI is a clean, standalone expense tracker extracted from a larger project. 
 ## Features
 
 - Expense CRUD with Cognito authentication
-- Dashboard with spending stats, filters, and sorting
+- Dashboard with spending stats, filters, and sorting (Arabic RTL + English)
+- **XP & leveling** — +20 XP per expense, level up every 500 XP (levels 1–20)
+- **Daily streaks** — 7-day streak row, ×2 XP multiplier on day 7+
+- **AI challenges** (OpenRouter / Claude) — personalized weekly challenges in Saudi Arabic
+- **Weekly leaderboard** — XP rankings, resets Monday 00:00
+- **Voice expense logging** — Arabic audio → transcription → auto-save
 - Receipt upload to S3 with presigned URLs
 - Recurring expense tracking
-- Receipt OCR pipeline (Textract) — scaffolded for AI extraction
 - CloudFront-hosted React frontend
 
 ## Project Structure
@@ -50,7 +54,8 @@ pip install -r requirements.txt
 # Frontend
 cd frontend && npm install && cd ..
 
-# Deploy
+# Deploy (set OpenRouter key for AI features)
+export OPENROUTER_API_KEY=sk-or-v1-your-key-here
 cdk bootstrap
 cdk deploy
 
@@ -76,6 +81,22 @@ cdk deploy   # redeploy to push frontend build
 | POST | `/expenses/{id}/recurring` | Yes | Toggle recurring |
 | GET | `/expenses/analytics` | Yes | Spending analytics |
 | POST | `/upload` | Yes | Get presigned S3 upload URL |
+| GET | `/profile` | Yes | XP, level, streak, 7-day row |
+| GET | `/challenges` | Yes | List AI challenges with progress |
+| POST | `/challenges/generate` | Yes | Manually generate challenges (dev) |
+| POST | `/challenges/{id}/claim` | Yes | Claim challenge XP reward |
+| GET | `/leaderboard` | Yes | Weekly XP leaderboard |
+| POST | `/voice/expense` | Yes | Voice → transcribe → create expense |
+
+## Database (DynamoDB)
+
+| Table | Key | Fields |
+|-------|-----|--------|
+| ExpensesTable | expenseId | userId, amount, category, date, … |
+| UsersTable | userId | xp, level, streak, lastLogDate, weeklyXp, weekStart |
+| ChallengesTable | challengeId (GSI: userId) | title, description, category, targetReductionPercent, xpReward, status, expiresAt |
+
+Weekly challenges are auto-generated **every Sunday** via EventBridge → `ChallengeGeneratorFunction`.
 
 ## Testing
 

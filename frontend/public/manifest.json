@@ -1,9 +1,12 @@
 {
-  "short_name": "RiyalAI",
-  "name": "RiyalAI Expense Tracker",
+  "short_name": "ريـال",
+  "name": "ريـال — مالك، في يدك",
   "icons": [],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#1a73e8",
-  "background_color": "#ffffff"
+  "orientation": "portrait",
+  "theme_color": "#0D1117",
+  "background_color": "#0D1117",
+  "lang": "ar",
+  "dir": "rtl"
 }

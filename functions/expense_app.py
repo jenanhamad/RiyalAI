@@ -13,6 +13,12 @@ TABLE_NAME = os.environ["TABLE_NAME"]
 BUCKET = os.environ.get("BUCKET", "")
 table = dynamodb.Table(TABLE_NAME)
 
+GAMIFICATION_ENABLED = bool(os.environ.get("USERS_TABLE_NAME"))
+
+if GAMIFICATION_ENABLED:
+    import gamification as gam
+    import openrouter as orouter
+
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -87,12 +93,13 @@ def create_expense(body, user_id):
         return create_response(400, {"error": "Invalid amount format"})
 
     expense_id = str(uuid.uuid4())
+    expense_date = body.get("date", datetime.utcnow().strftime("%Y-%m-%d"))
     expense_item = {
         "expenseId": expense_id,
         "userId": user_id,
         "merchant": body.get("merchant", ""),
         "amount": Decimal(str(amount)),
-        "date": body.get("date", datetime.utcnow().strftime("%Y-%m-%d")),
+        "date": expense_date,
         "category": body.get("category", "Other"),
         "paymentMethod": body.get("paymentMethod", "Credit Card"),
         "description": body.get("description", ""),
@@ -109,11 +116,24 @@ def create_expense(body, user_id):
         expense_item["receiptKey"] = body.get("receiptKey")
 
     table.put_item(Item=expense_item)
-    return create_response(201, {
+
+    gamification_result = None
+    if GAMIFICATION_ENABLED:
+        try:
+            gamification_result = gam.award_xp_for_expense(user_id, expense_date)
+            gam.check_and_complete_challenges(user_id)
+        except Exception as e:
+            print(f"Gamification error: {e}")
+
+    response_body = {
         "message": "Expense created successfully",
         "expenseId": expense_id,
         "expense": json.loads(json.dumps(expense_item, cls=DecimalEncoder)),
-    })
+    }
+    if gamification_result:
+        response_body["gamification"] = gamification_result
+
+    return create_response(201, response_body)
 
 
 def get_expense(expense_id, user_id):
@@ -259,6 +279,106 @@ def generate_upload_url(body, user_id):
     return create_response(200, {"uploadUrl": upload_url, "key": key})
 
 
+def get_profile(user_id):
+    if not GAMIFICATION_ENABLED:
+        return create_response(503, {"error": "Gamification not configured"})
+    return create_response(200, gam.profile_response(user_id))
+
+
+def get_challenges(user_id):
+    if not GAMIFICATION_ENABLED:
+        return create_response(503, {"error": "Gamification not configured"})
+    challenges = gam.list_challenges(user_id)
+    return create_response(200, {
+        "challenges": json.loads(json.dumps(challenges, cls=DecimalEncoder)),
+    })
+
+
+def claim_challenge(challenge_id, user_id):
+    if not GAMIFICATION_ENABLED:
+        return create_response(503, {"error": "Gamification not configured"})
+    result, status = gam.complete_challenge(challenge_id, user_id)
+    if status == "not_found":
+        return create_response(404, {"error": "Challenge not found"})
+    if status == "forbidden":
+        return create_response(403, {"error": "Access denied"})
+    if status == "not_completed":
+        return create_response(400, {"error": "Challenge not yet completed", "challenge": result})
+    return create_response(200, {"message": "Challenge reward claimed", "reward": result})
+
+
+def get_leaderboard(user_id):
+    if not GAMIFICATION_ENABLED:
+        return create_response(503, {"error": "Gamification not configured"})
+    data = gam.get_leaderboard(user_id)
+    return create_response(200, data)
+
+
+def generate_challenges_now(user_id):
+    """Manual trigger for testing — generates challenges for current user."""
+    if not GAMIFICATION_ENABLED:
+        return create_response(503, {"error": "Gamification not configured"})
+    try:
+        summary = gam.build_expense_summary_for_ai(user_id)
+        ai_result = orouter.generate_weekly_challenges(summary)
+        created = gam.create_challenges_for_user(user_id, ai_result.get("challenges", []))
+        return create_response(201, {
+            "message": "Challenges generated",
+            "count": len(created),
+            "challenges": json.loads(json.dumps(created, cls=DecimalEncoder)),
+        })
+    except Exception as e:
+        return create_response(500, {"error": str(e)})
+
+
+def voice_expense(body, user_id):
+    """Transcribe audio, extract expense, save and award XP."""
+    if not GAMIFICATION_ENABLED:
+        return create_response(503, {"error": "Gamification not configured"})
+
+    transcription = body.get("transcription", "").strip()
+    audio_b64 = body.get("audioBase64") or body.get("audio")
+    mime_type = body.get("mimeType", "audio/webm")
+
+    if not transcription and not audio_b64:
+        return create_response(400, {"error": "audioBase64 or transcription is required"})
+
+    try:
+        if not transcription:
+            transcription = orouter.transcribe_audio_base64(audio_b64, mime_type)
+        extracted = orouter.extract_expense_from_text(transcription)
+    except Exception as e:
+        return create_response(500, {"error": f"Voice processing failed: {e}"})
+
+    amount = float(extracted.get("amount", 0))
+    if amount <= 0:
+        return create_response(400, {
+            "error": "Could not detect amount from voice",
+            "transcription": transcription,
+            "extracted": extracted,
+        })
+
+    merchant = extracted.get("merchant") or extracted.get("note") or "مصروف صوتي"
+    expense_body = {
+        "merchant": merchant[:100],
+        "amount": amount,
+        "category": extracted.get("category", "Other"),
+        "description": extracted.get("note", ""),
+        "notes": f"صوت: {transcription[:200]}",
+        "paymentMethod": "Digital Wallet",
+        "date": datetime.utcnow().strftime("%Y-%m-%d"),
+    }
+
+    result = create_expense(expense_body, user_id)
+    if result["statusCode"] == 201:
+        body_data = json.loads(result["body"])
+        body_data["transcription"] = transcription
+        body_data["extracted"] = extracted
+        body_data["messageAr"] = f"تم تسجيل {amount} ريال — +{body_data.get('gamification', {}).get('xpEarned', 20)} XP"
+        return create_response(201, body_data)
+    return result
+
+
 def lambda_handler(event, context):
     if event.get("httpMethod") == "OPTIONS":
         return create_response(200, {})
@@ -279,6 +399,23 @@ def lambda_handler(event, context):
             body = json.loads(event["body"])
         except json.JSONDecodeError:
             return create_response(400, {"error": "Invalid JSON in request body"})
+
+    # Gamification routes
+    if path.endswith("/profile") and method == "GET":
+        return get_profile(user_id)
+    if path.endswith("/challenges") and method == "GET":
+        return get_challenges(user_id)
+    if path.endswith("/challenges/generate") and method == "POST":
+        return generate_challenges_now(user_id)
+    if path.endswith("/leaderboard") and method == "GET":
+        return get_leaderboard(user_id)
+    if path.endswith("/voice/expense") and method == "POST":
+        return voice_expense(body, user_id)
+
+    if "/challenges/" in path and path.endswith("/claim") and method == "POST":
+        parts = path.rstrip("/").split("/")
+        challenge_id = parts[-2]
+        return claim_challenge(challenge_id, user_id)
 
     if path.endswith("/expenses") and method == "GET":
         return list_expenses(user_id)
