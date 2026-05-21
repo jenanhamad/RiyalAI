@@ -1,8 +1,7 @@
-const TOKEN_KEY = 'riyalai_token';
-const USER_KEY = 'riyalai_user';
-
 import { getApiBase } from '../config/apiBase';
 
+const TOKEN_KEY = 'riyalai_token';
+const USER_KEY = 'riyalai_user';
 const API_BASE = getApiBase();
 
 export function getLocalToken() {
