@@ -10,8 +10,6 @@ const Home = ({ user, onSignOut }) => {
   const [challenges, setChallenges] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [xpToast, setXpToast] = useState(null);
-
   const [error, setError] = useState(null);
 
   const fetchData = async () => {
@@ -56,13 +54,6 @@ const Home = ({ user, onSignOut }) => {
 
   return (
     <div className="page">
-      {xpToast && (
-        <div className="xp-toast">
-          +{xpToast.xpEarned} XP
-          {xpToast.leveledUp && ' · مستوى جديد!'}
-        </div>
-      )}
-
       {error && <div className="error-banner">{error}</div>}
 
       <div className="header-bar">

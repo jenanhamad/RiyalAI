@@ -1,9 +1,14 @@
 # ريـال — single container: API + React
 FROM node:20-alpine AS frontend-build
 WORKDIR /build/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci 2>/dev/null || npm install
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
 COPY frontend/ ./
+# Railway sets CI=true — warnings fail CRA build without this
+ENV CI=false
+ENV GENERATE_SOURCEMAP=false
 ENV REACT_APP_API_URL=
 ENV NODE_ENV=production
 RUN npm run build
@@ -26,8 +31,5 @@ ENV PYTHONUNBUFFERED=1
 RUN mkdir -p /app/data/uploads
 
 EXPOSE 8000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/expenses/health')" || exit 1
 
 CMD sh -c "cd local && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
