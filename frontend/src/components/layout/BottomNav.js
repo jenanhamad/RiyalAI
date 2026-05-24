@@ -2,9 +2,9 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 
 const tabs = [
-  { to: '/', label: 'الرئيسية', icon: '🏠', end: true },
+  { to: '/', label: 'صوت', icon: '🎤', end: true },
+  { to: '/home', label: 'الرئيسية', icon: '🏠' },
   { to: '/challenges', label: 'التحديات', icon: '⚔️' },
-  { to: '/voice', label: 'صوت', icon: '🎤', center: true },
   { to: '/leaderboard', label: 'الصدارة', icon: '🏆' },
   { to: '/analytics', label: 'التحليلات', icon: '📊' },
 ];
@@ -17,7 +17,7 @@ const BottomNav = () => (
         to={tab.to}
         end={tab.end}
         className={({ isActive }) =>
-          `bottom-nav-item${tab.center ? ' bottom-nav-center' : ''}${isActive ? ' active' : ''}`
+          `bottom-nav-item${isActive ? ' active' : ''}`
         }
       >
         <span className="bottom-nav-icon">{tab.icon}</span>

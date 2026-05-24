@@ -4,6 +4,7 @@ import { localLogin, localRegister } from '../services/localAuth';
 const LocalAuth = ({ onAuthenticated }) => {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -15,10 +16,11 @@ const LocalAuth = ({ onAuthenticated }) => {
     try {
       const data = mode === 'login'
         ? await localLogin(username, password)
-        : await localRegister(username, password);
+        : await localRegister(username, password, email);
       onAuthenticated({
         username: data.username || data.displayName,
         userId: data.userId,
+        email: data.email,
       });
     } catch (err) {
       setError(err.message);
@@ -54,6 +56,20 @@ const LocalAuth = ({ onAuthenticated }) => {
           />
         </div>
 
+        {mode === 'register' && (
+          <div className="form-field">
+            <label>البريد الإلكتروني</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="example@email.com"
+            />
+          </div>
+        )}
+
         <div className="form-field">
           <label>كلمة المرور</label>
           <input
@@ -73,7 +89,10 @@ const LocalAuth = ({ onAuthenticated }) => {
         <button
           type="button"
           className="btn-ghost"
-          onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+          onClick={() => {
+            setMode(mode === 'login' ? 'register' : 'login');
+            setError(null);
+          }}
         >
           {mode === 'login' ? 'حساب جديد' : 'عندك حساب؟ سجّل دخول'}
         </button>

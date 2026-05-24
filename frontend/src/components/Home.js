@@ -136,7 +136,6 @@ const Home = ({ user, onSignOut }) => {
       )}
 
       <div className="home-fabs">
-        <Link to="/voice" className="fab-mic" aria-label="سجّل بالصوت">🎤</Link>
         <Link to="/add" className="fab-add" aria-label="أضف مصروف">+</Link>
       </div>
     </div>

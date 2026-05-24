@@ -78,6 +78,7 @@ def get_user_id(authorization: str | None = Header(None)) -> str:
 class RegisterBody(BaseModel):
     username: str
     password: str
+    email: str | None = None
 
 
 class LoginBody(BaseModel):
@@ -125,7 +126,7 @@ def health():
 @app.post("/auth/register")
 def register(body: RegisterBody):
     try:
-        return auth.register_user(body.username, body.password)
+        return auth.register_user(body.username, body.password, body.email)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

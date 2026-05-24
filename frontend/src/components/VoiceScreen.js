@@ -1,12 +1,30 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useVoiceExpense } from '../hooks/useVoiceExpense';
 import VoiceConfirmSheet from './VoiceConfirmSheet';
-import { formatRiyal } from '../utils/format';
-import { getCategoryMeta } from '../utils/categories';
+import { api } from '../services/api';
+import { formatRiyal, getGreeting } from '../utils/format';
+import { CATEGORIES, getCategoryMeta } from '../utils/categories';
 
-const VoiceScreen = () => {
-  const navigate = useNavigate();
+const VoiceScreen = ({ user }) => {
+  const [expenses, setExpenses] = useState([]);
+  const [loadingExpenses, setLoadingExpenses] = useState(true);
+
+  const fetchExpenses = useCallback(async () => {
+    try {
+      const res = await api.getExpenses();
+      setExpenses(res.data.expenses || []);
+    } catch {
+      setExpenses([]);
+    } finally {
+      setLoadingExpenses(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
   const {
     state,
     result,
@@ -16,7 +34,7 @@ const VoiceScreen = () => {
     stopAndProcess,
     confirmExpense,
     dismiss,
-  } = useVoiceExpense();
+  } = useVoiceExpense({ onSaved: fetchExpenses });
 
   const isRecording = state === 'recording';
   const isProcessing = state === 'processing';
@@ -25,12 +43,20 @@ const VoiceScreen = () => {
 
   useEffect(() => {
     if (state !== 'done') return undefined;
-    const t = setTimeout(() => {
-      dismiss();
-      navigate('/');
-    }, 2200);
+    const t = setTimeout(() => dismiss(), 2500);
     return () => clearTimeout(t);
-  }, [state, dismiss, navigate]);
+  }, [state, dismiss]);
+
+  const grouped = useMemo(() => {
+    const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+    return CATEGORIES.map((cat) => ({
+      ...cat,
+      items: sorted.filter((exp) => exp.category === cat.id),
+      total: sorted
+        .filter((exp) => exp.category === cat.id)
+        .reduce((sum, exp) => sum + Number(exp.amount || 0), 0),
+    })).filter((group) => group.items.length > 0);
+  }, [expenses]);
 
   const handleMic = () => {
     if (isProcessing) return;
@@ -48,26 +74,27 @@ const VoiceScreen = () => {
   const statusText = () => {
     if (isRecording && liveText && !liveText.startsWith('جاري')) return null;
     if (isRecording) return 'تكلم الآن... اضغط ⏹ لما تخلص';
-    if (isProcessing) return 'OpenRouter يحلّل كلامك...';
+    if (isProcessing) return 'نصنّف مصروفك ونضيفه...';
     if (state === 'done' && saved) {
-      return `تم! +${saved.xp_awarded ?? saved.gamification?.xpEarned} XP`;
+      return `تم الإضافة! +${saved.xp_awarded ?? saved.gamification?.xpEarned ?? 20} XP`;
     }
     return 'اضغط وقول مثلاً: قهوة ١٥ ريال';
   };
 
   return (
-    <div className="page voice-screen">
-      <h1 className="page-title">سجّل بالصوت</h1>
+    <div className="page voice-screen voice-home">
+      <div className="voice-home-header">
+        <div>
+          <p className="tagline">ريالي · ryialAI</p>
+          <h1 className="page-title">{getGreeting()}، {user?.username || 'صديقي'}</h1>
+        </div>
+      </div>
+
       <p className="page-subtitle text-secondary">
-        نفهم كلامك أولاً — ثم تأكد قبل الحفظ
+        قول مصروفك — نصنّفه ونضيفه مباشرة تحت التصنيف
       </p>
 
-      <p className="voice-pipeline-hint text-secondary">
-        OpenRouter: تفريغ صوت (Gemini) + استخراج مصروف (Claude) → تأكيدك
-      </p>
-
-      <div className="mic-rings">
-        <div className="mic-ring" />
+      <div className="mic-rings mic-rings-compact">
         <div className="mic-ring" />
         <div className="mic-ring" />
         <button
@@ -100,13 +127,55 @@ const VoiceScreen = () => {
 
       {state === 'done' && saved && (
         <div className="voice-result-box ai">
-          <p className="voice-live-text">{saved.messageAr}</p>
+          <p className="voice-live-text">{saved.messageAr || 'تم حفظ المصروف'}</p>
           <p className="voice-result-meta">
             {formatRiyal(saved.amount)}
             {' · '}
             {getCategoryMeta(saved.category).labelAr}
           </p>
         </div>
+      )}
+
+      <h2 className="section-title voice-categories-title">مصروفاتك حسب التصنيف</h2>
+
+      {loadingExpenses ? (
+        <div className="empty-state">
+          <div className="spinner" />
+        </div>
+      ) : grouped.length === 0 ? (
+        <div className="empty-state">
+          <p>ما عندك مصروفات بعد</p>
+          <p>اضغط 🎤 وابدأ</p>
+        </div>
+      ) : (
+        grouped.map((group) => (
+          <section key={group.id} className="voice-category-block">
+            <div className="voice-category-header">
+              <span className="voice-category-icon" style={{ borderColor: group.color }}>
+                {group.icon}
+              </span>
+              <div className="voice-category-meta">
+                <h3>{group.labelAr}</h3>
+                <p className="text-secondary">{formatRiyal(group.total)}</p>
+              </div>
+            </div>
+            <div className="voice-category-items">
+              {group.items.map((exp) => (
+                <Link
+                  key={exp.expenseId}
+                  to={`/expense/${exp.expenseId}`}
+                  className="expense-item voice-category-item"
+                >
+                  <div className="expense-item-body">
+                    <div className="expense-item-merchant">{exp.merchant}</div>
+                    <div className="expense-item-meta">{exp.date}</div>
+                  </div>
+                  <div className="expense-item-amount">{formatRiyal(exp.amount)}</div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))
       )}
 
       <VoiceConfirmSheet

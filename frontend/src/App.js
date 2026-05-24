@@ -36,9 +36,9 @@ function App() {
     <Router>
       <div className="app-shell">
         <Routes>
-          <Route path="/" element={<Home user={user} onSignOut={handleSignOut} />} />
+          <Route path="/" element={<VoiceScreen user={user} />} />
+          <Route path="/home" element={<Home user={user} onSignOut={handleSignOut} />} />
           <Route path="/challenges" element={<Challenges user={user} />} />
-          <Route path="/voice" element={<VoiceScreen />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/add" element={<AddExpense />} />
