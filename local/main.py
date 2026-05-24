@@ -68,10 +68,10 @@ def root():
 
 def get_user_id(authorization: str | None = Header(None)) -> str:
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Authentication required")
+        raise HTTPException(401, "يلزم تسجيل الدخول")
     payload = auth.decode_token(authorization.replace("Bearer ", ""))
     if not payload:
-        raise HTTPException(401, "Invalid or expired token")
+        raise HTTPException(401, "انتهت الجلسة — سجّل دخولك مرة ثانية")
     return payload["sub"]
 
 
@@ -120,7 +120,13 @@ def _expense_row_to_api(row) -> dict:
 
 @app.get("/expenses/health")
 def health():
-    return {"status": "healthy", "service": "ريالي-ryialAI", "timestamp": datetime.utcnow().isoformat()}
+    openrouter_ok = bool(os.environ.get("OPENROUTER_API_KEY", "").strip())
+    return {
+        "status": "healthy",
+        "service": "ريالي-ryialAI",
+        "timestamp": datetime.utcnow().isoformat(),
+        "openrouterConfigured": openrouter_ok,
+    }
 
 
 @app.post("/auth/register")
@@ -422,6 +428,17 @@ class VoiceConfirmRequest(BaseModel):
     transcription: str
 
 
+def _voice_service_error(exc: Exception) -> HTTPException:
+    msg = str(exc)
+    if "OPENROUTER_API_KEY is not configured" in msg:
+        return HTTPException(503, detail={
+            "error": "مفتاح OpenRouter غير مضبوط على الخادم — أضف OPENROUTER_API_KEY في Railway Variables",
+        })
+    if isinstance(exc, ValueError):
+        return HTTPException(503, detail={"error": msg})
+    return HTTPException(500, detail={"error": f"Voice processing failed: {msg}"})
+
+
 @app.post("/voice/process")
 async def voice_process(
     audio_file: UploadFile | None = File(None),
@@ -442,10 +459,10 @@ async def voice_process(
         try:
             text = await asyncio.to_thread(voice.transcribe_audio, audio_bytes, filename)
         except ValueError as e:
-            raise HTTPException(503, str(e))
+            raise _voice_service_error(e) from e
         except Exception as e:
             _log_voice(user_id, "", None, None, None, "failed")
-            raise HTTPException(500, f"Transcription failed: {e}")
+            raise _voice_service_error(e) from e
 
     if not text:
         raise HTTPException(400, "Could not transcribe audio")
@@ -454,7 +471,7 @@ async def voice_process(
         extracted = await asyncio.to_thread(voice.extract_expense, text)
     except Exception as e:
         _log_voice(user_id, text, None, None, None, "failed")
-        raise HTTPException(500, f"Extraction failed: {e}")
+        raise _voice_service_error(e) from e
 
     _log_voice(
         user_id, text, extracted["amount"], extracted["category"],

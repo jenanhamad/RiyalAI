@@ -1,8 +1,25 @@
 import axios from 'axios';
-import { getLocalToken } from './localAuth';
+import { getLocalToken, clearLocalSession } from './localAuth';
 import { getApiBase } from '../config/apiBase';
 
 const API_BASE = getApiBase();
+
+let onUnauthorized = () => {};
+
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = typeof handler === 'function' ? handler : () => {};
+}
+
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      clearLocalSession();
+      onUnauthorized();
+    }
+    return Promise.reject(error);
+  }
+);
 
 async function authHeaders() {
   const token = getLocalToken();

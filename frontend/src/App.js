@@ -10,14 +10,47 @@ import VoiceScreen from './components/VoiceScreen';
 import LocalAuth from './components/LocalAuth';
 import BottomNav from './components/layout/BottomNav';
 import { getLocalUser, clearLocalSession } from './services/localAuth';
+import { api, setUnauthorizedHandler } from './services/api';
 import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [booting, setBooting] = useState(true);
 
   useEffect(() => {
-    setUser(getLocalUser());
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setBooting(false);
+    });
+
+    async function bootstrap() {
+      const local = getLocalUser();
+      if (!local) {
+        setBooting(false);
+        return;
+      }
+      try {
+        await api.getProfile();
+        setUser(local);
+      } catch {
+        clearLocalSession();
+        setUser(null);
+      } finally {
+        setBooting(false);
+      }
+    }
+
+    bootstrap();
   }, []);
+
+  if (booting) {
+    return (
+      <div className="page loading-screen">
+        <div className="spinner" />
+        <p>جاري التحميل...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
