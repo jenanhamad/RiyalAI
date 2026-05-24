@@ -26,6 +26,8 @@ from database import init_db, get_connection
 import gamification as gam
 import auth
 import voice_service as voice
+import seed_sample_data as seed_demo
+import friends as social
 
 # OpenRouter only — import by path so we don't shadow local/gamification.py
 import importlib.util
@@ -129,6 +131,22 @@ def health():
     }
 
 
+@app.post("/admin/seed-demo")
+def admin_seed_demo(
+    username: str = "jinan",
+    replace: bool = False,
+    x_seed_secret: str | None = Header(None, alias="X-Seed-Secret"),
+):
+    """One-shot demo seed on Railway volume — requires SEED_SECRET env var."""
+    expected = os.environ.get("SEED_SECRET", "").strip()
+    if not expected or x_seed_secret != expected:
+        raise HTTPException(403, "Forbidden")
+    try:
+        return seed_demo.seed(username, replace=replace)
+    except Exception as e:
+        raise HTTPException(500, str(e)) from e
+
+
 @app.post("/auth/register")
 def register(body: RegisterBody):
     try:
@@ -176,6 +194,68 @@ def claim_challenge(challenge_id: str, user_id: str = Depends(get_user_id)):
     if status == "not_completed":
         raise HTTPException(400, detail={"error": "Challenge not yet completed", "challenge": result})
     return {"message": "Challenge reward claimed", "reward": result}
+
+
+class AddFriendBody(BaseModel):
+    username: str
+
+
+class JoinGroupBody(BaseModel):
+    groupId: str
+
+
+@app.get("/users/lookup/{username}")
+def lookup_user(username: str, user_id: str = Depends(get_user_id)):
+    profile = social.lookup_username(username)
+    if not profile:
+        raise HTTPException(404, "اسم المستخدم غير موجود")
+    profile["isMe"] = profile["userId"] == user_id
+    return profile
+
+
+@app.get("/friends")
+def get_friends(user_id: str = Depends(get_user_id)):
+    return {"friends": social.list_friends(user_id)}
+
+
+@app.post("/friends")
+def add_friend(body: AddFriendBody, user_id: str = Depends(get_user_id)):
+    try:
+        friend = social.add_friend(user_id, body.username)
+        return {"message": "تمت إضافة الصديق", "friend": friend}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/friends/{friend_id}")
+def delete_friend(friend_id: str, user_id: str = Depends(get_user_id)):
+    return social.remove_friend(user_id, friend_id)
+
+
+@app.get("/friends/leaderboard")
+def friends_leaderboard(user_id: str = Depends(get_user_id)):
+    return social.get_friends_leaderboard(user_id)
+
+
+@app.get("/challenges/shared")
+def shared_challenges(user_id: str = Depends(get_user_id)):
+    return {"groups": social.list_shared_challenges(user_id)}
+
+
+@app.post("/challenges/{challenge_id}/share")
+def share_challenge(challenge_id: str, user_id: str = Depends(get_user_id)):
+    try:
+        return social.share_challenge_with_friends(challenge_id, user_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/challenges/shared/join")
+def join_shared(body: JoinGroupBody, user_id: str = Depends(get_user_id)):
+    try:
+        return social.join_shared_group(body.groupId, user_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
 
 
 @app.get("/leaderboard")

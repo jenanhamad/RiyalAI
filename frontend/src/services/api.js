@@ -104,6 +104,46 @@ export const api = {
     return axios.get(`${API_BASE}/leaderboard`, { headers });
   },
 
+  lookupUser: async (username) => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/users/lookup/${encodeURIComponent(username)}`, { headers });
+  },
+
+  getFriends: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/friends`, { headers });
+  },
+
+  addFriend: async (username) => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/friends`, { username }, { headers });
+  },
+
+  removeFriend: async (friendId) => {
+    const headers = await authHeaders();
+    return axios.delete(`${API_BASE}/friends/${friendId}`, { headers });
+  },
+
+  getFriendsLeaderboard: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/friends/leaderboard`, { headers });
+  },
+
+  getSharedChallenges: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/challenges/shared`, { headers });
+  },
+
+  shareChallenge: async (challengeId) => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/challenges/${challengeId}/share`, {}, { headers });
+  },
+
+  joinSharedChallenge: async (groupId) => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/challenges/shared/join`, { groupId }, { headers });
+  },
+
   /** Process voice — transcribe + extract, does NOT save */
   voiceProcess: async ({ audioBlob, filename = 'voice.webm', transcription }) => {
     const headers = await authHeaders();

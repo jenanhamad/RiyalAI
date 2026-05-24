@@ -53,6 +53,31 @@ PUBLIC_URL=https://اسم-مشروعك.up.railway.app
 | 502 / Crash | تأكد `JWT_SECRET` موجود |
 | رفع إيصال لا يعمل | عيّن `PUBLIC_URL` = رابط Railway بالضبط |
 | تحديات AI لا تعمل | أضف `OPENROUTER_API_KEY` |
+| بيانات تجريبية | انظر §6 أدناه |
+
+## 6) بيانات تجريبية على الـ Volume
+
+**طريقة 1 — من Terminal (بعد `railway login`):**
+
+```bash
+railway link
+railway run python local/seed_sample_data.py jinan --replace
+```
+
+**طريقة 2 — عبر HTTP (بدون CLI):**
+
+1. في Variables أضف مؤقتاً: `SEED_SECRET=كلمة-سر-عشوائية`
+2. Redeploy
+3. نفّذ (استبدل الرابط والسر):
+
+```bash
+curl -X POST "https://YOUR-APP.up.railway.app/admin/seed-demo?username=jinan&replace=true" \
+  -H "X-Seed-Secret: كلمة-سر-عشوائية"
+```
+
+4. احذف `SEED_SECRET` من Variables بعد النجاح
+
+يجب أن يكون حساب **jinan** مسجّلاً مسبقاً على التطبيق (أو السكربت ينشئه محلياً فقط عند التشغيل داخل الحاوية).
 
 ## تكلفة تقريبية
 

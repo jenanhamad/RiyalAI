@@ -202,6 +202,7 @@ def _enrich_challenge(ch, user_id):
         "status": ch["status"],
         "createdAt": ch["created_at"],
         "expiresAt": ch["expires_at"],
+        "groupId": ch.get("group_id"),
         "currentSpend": current,
         "targetAmount": target_amount,
         "progressPercent": progress,

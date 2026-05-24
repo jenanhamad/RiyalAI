@@ -1190,3 +1190,155 @@ body::before {
   font-weight: 700;
   margin-top: 4px;
 }
+
+.success-banner {
+  background: rgba(26, 107, 60, 0.15);
+  border: 1px solid var(--green-mid);
+  color: var(--green-mid);
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.invite-toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--green-mid);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.friends-section-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.friends-invite-card,
+.friends-add-card {
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.friends-qr-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #fff;
+  border-radius: 12px;
+  margin: 12px auto;
+  width: fit-content;
+}
+
+.friends-username {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  margin: 8px 0 12px;
+}
+
+.friends-copy-btn {
+  width: 100%;
+  font-size: 0.8rem;
+}
+
+.friends-add-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.friends-add-form input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.friends-scan-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.friends-qr-reader {
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.friends-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.friends-row-name {
+  font-weight: 600;
+}
+
+.friends-row-meta {
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.friends-remove-btn {
+  font-size: 0.75rem;
+  padding: 6px 10px;
+}
+
+.shared-challenge-card {
+  margin-bottom: 16px;
+}
+
+.shared-members {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shared-member-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 40px;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.shared-member-row.is-me span:first-child {
+  color: var(--green-mid);
+  font-weight: 600;
+}
+
+.shared-member-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.shared-member-fill {
+  height: 100%;
+  background: var(--green-mid);
+  border-radius: 999px;
+}
+
+.challenge-share-btn {
+  width: calc(100% - 28px);
+  margin: 0 14px 14px;
+  font-size: 0.85rem;
+}

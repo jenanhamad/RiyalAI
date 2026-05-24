@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { formatXp, getMondayResetCountdown } from '../utils/format';
 
@@ -38,7 +39,10 @@ const Leaderboard = () => {
   return (
     <div className="page">
       <h1 className="page-title">الصدارة</h1>
-      <p className="page-subtitle">Leaderboard · أسبوعي</p>
+      <p className="page-subtitle">Leaderboard · كل المستخدمين</p>
+      <p className="text-secondary" style={{ fontSize: '0.85rem', marginBottom: 12 }}>
+        لصدارة الأصدقاء فقط → <Link to="/friends" className="text-green">👥 الأصدقاء</Link>
+      </p>
 
       <div className="reset-timer">
         ⏱ يتجدد بعد {countdown.label}

@@ -5,8 +5,8 @@ const tabs = [
   { to: '/', label: 'صوت', icon: '🎤', end: true },
   { to: '/home', label: 'الرئيسية', icon: '🏠' },
   { to: '/challenges', label: 'التحديات', icon: '⚔️' },
+  { to: '/friends', label: 'الأصدقاء', icon: '👥' },
   { to: '/leaderboard', label: 'الصدارة', icon: '🏆' },
-  { to: '/analytics', label: 'التحليلات', icon: '📊' },
 ];
 
 const BottomNav = () => (
