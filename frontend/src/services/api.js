@@ -163,6 +163,17 @@ export const api = {
     });
   },
 
+  /** Process receipt image — extract expense, does NOT save */
+  receiptProcess: async (file) => {
+    const headers = await authHeaders();
+    const form = new FormData();
+    form.append('image_file', file, file.name || 'receipt.jpg');
+    return axios.post(`${API_BASE}/receipt/process`, form, {
+      headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
+    });
+  },
+
   /** Confirm and save after user approves sheet */
   voiceConfirm: async (data) => {
     const headers = await authHeaders();

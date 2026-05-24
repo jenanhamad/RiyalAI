@@ -7,6 +7,7 @@ import urllib.request
 OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_MODEL = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3.5-haiku")
 TRANSCRIPTION_MODEL = os.environ.get("OPENROUTER_TRANSCRIPTION_MODEL", "google/gemini-2.0-flash-001")
+RECEIPT_VISION_MODEL = os.environ.get("OPENROUTER_RECEIPT_MODEL", TRANSCRIPTION_MODEL)
 
 
 def _api_key():
@@ -113,6 +114,48 @@ def extract_expense_from_text(transcription):
     raw = chat_completion(
         [{"role": "user", "content": prompt}],
         max_tokens=256,
+        temperature=0.1,
+    )
+    raw = raw.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
+
+
+def extract_expense_from_receipt_image(image_b64: str, mime_type: str = "image/jpeg"):
+    """Extract expense fields from a receipt photo via OpenRouter vision."""
+    prompt = """أنت تقرأ إيصالاً أو فاتورة (عربي/إنجليزي) لتطبيق مصاريف سعودي.
+
+استخرج من الصورة:
+- المبلغ الإجمالي النهائي (total) بالريال
+- اسم المتجر/المطعم
+- التصنيف المناسب
+- ملاحظة قصيرة إن وُجدت
+
+أرجع JSON فقط بدون أي نص إضافي:
+{
+  "amount": <رقم فقط>,
+  "category": <Food & Dining, Transportation, Shopping, Entertainment, Utilities, Healthcare, Groceries, Gas, Other
+    أو بالعربية: طعام، تنقل، تسوق، ترفيه، فواتير، صحة، بقالة، وقود، أخرى>,
+  "note": <ملاحظة قصيرة أو null>,
+  "merchant": <اسم المتجر>,
+  "confidence": <0.0 إلى 1.0>
+}
+
+إذا المبلغ غير واضح استخدم 0."""
+    content = [
+        {"type": "text", "text": prompt},
+        {
+            "type": "image_url",
+            "image_url": {"url": f"data:{mime_type};base64,{image_b64}"},
+        },
+    ]
+    raw = chat_completion(
+        [{"role": "user", "content": content}],
+        model=RECEIPT_VISION_MODEL,
+        max_tokens=512,
         temperature=0.1,
     )
     raw = raw.strip()

@@ -35,6 +35,12 @@ _MIME_BY_EXT = {
     "mp3": "audio/mpeg",
     "wav": "audio/wav",
     "ogg": "audio/ogg",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "webp": "image/webp",
+    "heic": "image/heic",
+    "heif": "image/heif",
 }
 
 
@@ -84,6 +90,16 @@ def transcribe_audio(audio_bytes: bytes, filename: str = "voice.webm") -> str:
 def extract_expense(transcription: str) -> dict[str, Any]:
     raw = _openrouter().extract_expense_from_text(transcription)
     return _normalize_extracted(raw, transcription)
+
+
+def extract_receipt_image(image_bytes: bytes, filename: str = "receipt.jpg") -> dict[str, Any]:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
+    mime = _MIME_BY_EXT.get(ext, "image/jpeg")
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    raw = _openrouter().extract_expense_from_receipt_image(b64, mime)
+    merchant = (raw.get("merchant") or raw.get("note") or "إيصال").strip()
+    label = f"إيصال: {merchant}"
+    return _normalize_extracted(raw, label)
 
 
 def _normalize_extracted(data: dict[str, Any], transcription: str) -> dict[str, Any]:

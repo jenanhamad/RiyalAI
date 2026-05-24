@@ -4,25 +4,19 @@ import { api } from '../services/api';
 const AUTO_SAVE_CONFIDENCE = 0.8;
 
 /**
- * Voice expense flow: record → process → auto-save (or confirm sheet) → done
+ * Voice / receipt flow: capture → process → auto-save (or confirm sheet) → done
  */
 export function useVoiceExpense({ onSaved } = {}) {
   const [state, setState] = useState('idle');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [liveText, setLiveText] = useState('');
+  const [inputMode, setInputMode] = useState('voice');
   const mediaRecorderRef = useRef(null);
   const speechRef = useRef(null);
   const chunksRef = useRef([]);
   const finalTranscriptRef = useRef('');
   const streamRef = useRef(null);
-
-  const reset = useCallback(() => {
-    setResult(null);
-    setError('');
-    setLiveText('');
-    if (state !== 'recording') setState('idle');
-  }, [state]);
 
   const saveExtracted = useCallback(async (extracted) => {
     const payload = {
@@ -30,6 +24,7 @@ export function useVoiceExpense({ onSaved } = {}) {
       category: extracted.category,
       note: extracted.note || null,
       transcription: extracted.transcription,
+      source: extracted.source || 'voice',
     };
     const saved = await api.voiceConfirm(payload);
     const savedData = saved.data;
@@ -76,7 +71,7 @@ export function useVoiceExpense({ onSaved } = {}) {
     setLiveText('');
     try {
       const res = await api.voiceProcess({ transcription: trimmed });
-      await handleExtracted(res.data);
+      await handleExtracted({ ...res.data, source: 'voice' });
     } catch (err) {
       setError(parseVoiceError(err));
       setState('idle');
@@ -88,14 +83,31 @@ export function useVoiceExpense({ onSaved } = {}) {
     setLiveText('');
     try {
       const res = await api.voiceProcess({ audioBlob: blob, filename });
-      await handleExtracted(res.data);
+      await handleExtracted({ ...res.data, source: 'voice' });
     } catch (err) {
       setError(parseVoiceError(err));
       setState('idle');
     }
   }, [handleExtracted]);
 
+  const processReceiptFile = useCallback(async (file) => {
+    if (!file) return;
+    setState('processing');
+    setError('');
+    setLiveText('جاري قراءة الإيصال...');
+    try {
+      const res = await api.receiptProcess(file);
+      setLiveText('');
+      await handleExtracted({ ...res.data, source: 'receipt' });
+    } catch (err) {
+      setError(parseVoiceError(err));
+      setLiveText('');
+      setState('idle');
+    }
+  }, [handleExtracted]);
+
   const startRecording = useCallback(async () => {
+    setInputMode('voice');
     setError('');
     setResult(null);
 
@@ -179,6 +191,7 @@ export function useVoiceExpense({ onSaved } = {}) {
         category: edited.category,
         note: edited.note,
         transcription: edited.transcription,
+        source: result?.source || 'voice',
       });
       return savedData;
     } catch (err) {
@@ -195,25 +208,36 @@ export function useVoiceExpense({ onSaved } = {}) {
     setLiveText('');
   }, []);
 
+  const setMode = useCallback((mode) => {
+    if (state === 'processing' || state === 'recording') return;
+    setInputMode(mode);
+    setError('');
+    setResult(null);
+    setLiveText('');
+    if (state !== 'idle' && state !== 'done') setState('idle');
+  }, [state]);
+
   return {
     state,
     result,
     error,
     liveText,
+    inputMode,
+    setMode,
     startRecording,
     stopAndProcess,
+    processReceiptFile,
     confirmExpense,
     dismiss,
-    reset,
   };
 }
 
 function parseVoiceError(err) {
   const data = err.response?.data;
-  if (!data) return err.message || 'تعذّر فهم الصوت';
+  if (!data) return err.message || 'تعذّر المعالجة';
   const detail = data.detail;
   if (detail && typeof detail === 'object') {
-    return detail.error || 'تعذّر فهم الصوت';
+    return detail.error || 'تعذّر المعالجة';
   }
-  return typeof detail === 'string' ? detail : data.error || 'تعذّر فهم الصوت';
+  return typeof detail === 'string' ? detail : data.error || 'تعذّر المعالجة';
 }

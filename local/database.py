@@ -34,7 +34,7 @@ def _migrate_social(conn):
     cols = {row[1] for row in conn.execute("PRAGMA table_info(challenges)")}
     if "group_id" not in cols:
         conn.execute("ALTER TABLE challenges ADD COLUMN group_id TEXT")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_challenges_group ON challenges(group_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_challenges_group ON challenges(group_id)")
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS friendships (
@@ -97,6 +97,7 @@ def init_db():
             baseline_amount REAL DEFAULT 0,
             xp_reward INTEGER DEFAULT 150,
             status TEXT DEFAULT 'active',
+            group_id TEXT,
             created_at TEXT NOT NULL,
             expires_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -125,7 +126,6 @@ def init_db():
 
         CREATE INDEX IF NOT EXISTS idx_expenses_user ON expenses(user_id);
         CREATE INDEX IF NOT EXISTS idx_challenges_user ON challenges(user_id);
-        CREATE INDEX IF NOT EXISTS idx_friendships_user ON friendships(user_id);
         CREATE INDEX IF NOT EXISTS idx_voice_logs_user_date ON voice_logs(user_id, created_at);
     """)
     _migrate_users(conn)

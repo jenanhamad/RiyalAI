@@ -506,6 +506,7 @@ class VoiceConfirmRequest(BaseModel):
     category: str
     note: str | None = None
     transcription: str
+    source: str = "voice"
 
 
 def _voice_service_error(exc: Exception) -> HTTPException:
@@ -568,6 +569,38 @@ async def voice_process(
     }
 
 
+@app.post("/receipt/process")
+async def receipt_process(
+    image_file: UploadFile = File(...),
+    user_id: str = Depends(get_user_id),
+):
+    """Extract expense from receipt image — does NOT save."""
+    _check_voice_rate_limit(user_id)
+    image_bytes = await image_file.read()
+    if not image_bytes:
+        raise HTTPException(400, "Empty image file")
+    filename = image_file.filename or "receipt.jpg"
+    try:
+        extracted = await asyncio.to_thread(voice.extract_receipt_image, image_bytes, filename)
+    except Exception as e:
+        _log_voice(user_id, "receipt", None, None, None, "failed")
+        raise _voice_service_error(e) from e
+
+    _log_voice(
+        user_id, extracted["transcription"], extracted["amount"], extracted["category"],
+        extracted["confidence"], "processed",
+    )
+    return {
+        "transcription": extracted["transcription"],
+        "amount": extracted["amount"],
+        "category": extracted["category"],
+        "note": extracted.get("note"),
+        "confidence": extracted["confidence"],
+        "source": "receipt",
+        "xp_awarded": 0,
+    }
+
+
 @app.post("/voice/confirm")
 def voice_confirm(body: VoiceConfirmRequest, user_id: str = Depends(get_user_id)):
     """Save expense after user confirms extracted data."""
@@ -578,14 +611,16 @@ def voice_confirm(body: VoiceConfirmRequest, user_id: str = Depends(get_user_id)
         })
 
     category = voice.normalize_category(body.category)
-    merchant = (body.note or "مصروف صوتي")[:100]
+    merchant = (body.note or ("إيصال" if body.source == "receipt" else "مصروف صوتي"))[:100]
+    source_label = "إيصال" if body.source == "receipt" else "صوت"
     expense_body = ExpenseBody(
         merchant=merchant,
         amount=float(body.amount),
         category=category,
         description=body.note or "",
-        notes=f"صوت: {body.transcription[:200]}",
+        notes=f"{source_label}: {body.transcription[:200]}",
         paymentMethod="Digital Wallet",
+        hasReceipt=body.source == "receipt",
     )
     result = _create_expense_for_user(expense_body, user_id, voice_bonus=True)
     xp = result["gamification"]["xpEarned"]

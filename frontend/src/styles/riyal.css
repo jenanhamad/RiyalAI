@@ -531,6 +531,67 @@ body::before {
   display: none;
 }
 
+.input-mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin: 0 auto 16px;
+  max-width: 280px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.input-mode-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.input-mode-btn.active {
+  background: var(--green-mid);
+  color: #fff;
+  font-weight: 600;
+}
+
+.input-mode-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sr-only-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mic-btn-large.receipt {
+  background: linear-gradient(145deg, #2563eb, #1d4ed8);
+}
+
+.receipt-preview-wrap {
+  margin: 12px auto;
+  max-width: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.receipt-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 160px;
+  object-fit: cover;
+}
+
 .voice-categories-title {
   margin-top: 28px;
 }
