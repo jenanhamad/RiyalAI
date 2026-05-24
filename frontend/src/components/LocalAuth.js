@@ -3,9 +3,8 @@ import { localLogin, localRegister } from '../services/localAuth';
 
 const LocalAuth = ({ onAuthenticated }) => {
   const [mode, setMode] = useState('login');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -15,11 +14,11 @@ const LocalAuth = ({ onAuthenticated }) => {
     setError(null);
     try {
       const data = mode === 'login'
-        ? await localLogin(email, password)
-        : await localRegister(email, password, displayName);
+        ? await localLogin(username, password)
+        : await localRegister(username, password);
       onAuthenticated({
-        username: data.displayName || data.email,
-        email: data.email,
+        username: data.username || data.displayName,
+        userId: data.userId,
       });
     } catch (err) {
       setError(err.message);
@@ -41,25 +40,17 @@ const LocalAuth = ({ onAuthenticated }) => {
       <form className="glass-card auth-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner">{error}</div>}
 
-        {mode === 'register' && (
-          <div className="form-field">
-            <label>الاسم</label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="اختياري"
-            />
-          </div>
-        )}
-
         <div className="form-field">
-          <label>البريد الإلكتروني</label>
+          <label>اسم المستخدم</label>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
+            minLength={3}
+            maxLength={20}
+            autoComplete="username"
+            placeholder="مثال: jenan"
           />
         </div>
 
@@ -71,6 +62,7 @@ const LocalAuth = ({ onAuthenticated }) => {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           />
         </div>
 

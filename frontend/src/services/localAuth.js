@@ -13,11 +13,10 @@ export function getLocalUser() {
   return raw ? JSON.parse(raw) : null;
 }
 
-export function setLocalSession({ token, email, displayName, userId }) {
+export function setLocalSession({ token, username, displayName, userId }) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify({
-    username: displayName || email,
-    email,
+    username: username || displayName,
     userId,
   }));
 }
@@ -27,26 +26,26 @@ export function clearLocalSession() {
   localStorage.removeItem(USER_KEY);
 }
 
-export async function localRegister(email, password, displayName = '') {
+export async function localRegister(username, password) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, displayName }),
+    body: JSON.stringify({ username, password }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || data.error || 'Registration failed');
+  if (!res.ok) throw new Error(data.detail || data.error || 'فشل إنشاء الحساب');
   setLocalSession(data);
   return data;
 }
 
-export async function localLogin(email, password) {
+export async function localLogin(username, password) {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ username, password }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Invalid email or password');
+  if (!res.ok) throw new Error(data.detail || 'اسم المستخدم أو كلمة المرور غير صحيحة');
   setLocalSession(data);
   return data;
 }

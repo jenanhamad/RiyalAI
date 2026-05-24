@@ -1,111 +1,70 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
+import { useVoiceExpense } from '../hooks/useVoiceExpense';
+import VoiceConfirmSheet from './VoiceConfirmSheet';
 import { formatRiyal } from '../utils/format';
+import { getCategoryMeta } from '../utils/categories';
 
 const VoiceScreen = () => {
   const navigate = useNavigate();
-  const [recording, setRecording] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [bubbles, setBubbles] = useState([]);
-  const mediaRecorderRef = useRef(null);
-  const speechRef = useRef(null);
-  const chunksRef = useRef([]);
+  const {
+    state,
+    result,
+    error,
+    liveText,
+    startRecording,
+    stopAndProcess,
+    confirmExpense,
+    dismiss,
+  } = useVoiceExpense();
 
-  const addBubble = (role, text) => {
-    setBubbles((prev) => [...prev, { role, text, id: Date.now() }]);
+  const isRecording = state === 'recording';
+  const isProcessing = state === 'processing';
+  const showSheet = state === 'confirming' && result;
+  const saved = result?.saved;
+
+  useEffect(() => {
+    if (state !== 'done') return undefined;
+    const t = setTimeout(() => {
+      dismiss();
+      navigate('/');
+    }, 2200);
+    return () => clearTimeout(t);
+  }, [state, dismiss, navigate]);
+
+  const handleMic = () => {
+    if (isProcessing) return;
+    if (isRecording) stopAndProcess();
+    else startRecording();
   };
 
-  const blobToBase64 = (blob) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-
-  const submitTranscription = async (text) => {
-    setProcessing(true);
-    addBubble('user', text);
-    try {
-      const res = await api.voiceExpense(null, 'audio/webm', text);
-      const d = res.data;
-      addBubble('ai', d.messageAr || `تم تسجيل ${formatRiyal(d.expense?.amount || d.extracted?.amount)}`);
-      setTimeout(() => navigate('/'), 2000);
-    } catch (err) {
-      addBubble('ai', err.response?.data?.error || 'ما قدرت أفهم، جرّب مرة ثانية');
-    } finally {
-      setProcessing(false);
-      setRecording(false);
-    }
+  const micIcon = () => {
+    if (isProcessing) return '⏳';
+    if (state === 'done') return '✓';
+    if (isRecording) return '⏹';
+    return '🎤';
   };
 
-  const processAudio = async (blob, mimeType) => {
-    setProcessing(true);
-    addBubble('user', '🎤 تسجيل صوتي...');
-    try {
-      const b64 = await blobToBase64(blob);
-      const res = await api.voiceExpense(b64, mimeType);
-      const d = res.data;
-      setBubbles((prev) => [
-        ...prev.slice(0, -1),
-        { role: 'user', text: d.transcription || '...', id: Date.now() - 1 },
-        { role: 'ai', text: d.messageAr || 'تم!', id: Date.now() },
-      ]);
-      setTimeout(() => navigate('/'), 2000);
-    } catch (err) {
-      addBubble('ai', err.response?.data?.error || 'فشل التحليل');
-    } finally {
-      setProcessing(false);
+  const statusText = () => {
+    if (isRecording && liveText && !liveText.startsWith('جاري')) return null;
+    if (isRecording) return 'تكلم الآن... اضغط ⏹ لما تخلص';
+    if (isProcessing) return 'OpenRouter يحلّل كلامك...';
+    if (state === 'done' && saved) {
+      return `تم! +${saved.xp_awarded ?? saved.gamification?.xpEarned} XP`;
     }
-  };
-
-  const startSpeech = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return false;
-    const rec = new SR();
-    rec.lang = 'ar-SA';
-    speechRef.current = rec;
-    rec.onresult = (e) => submitTranscription(e.results[0][0].transcript);
-    rec.onerror = () => {
-      addBubble('ai', 'تعذر التعرف على الصوت');
-      setRecording(false);
-    };
-    rec.onend = () => setRecording(false);
-    rec.start();
-    setRecording(true);
-    return true;
-  };
-
-  const handleMic = async () => {
-    if (processing) return;
-    if (recording) {
-      speechRef.current?.stop();
-      mediaRecorderRef.current?.stop();
-      return;
-    }
-    if (startSpeech()) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
-      mediaRecorderRef.current = mr;
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
-      mr.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        await processAudio(new Blob(chunksRef.current), mr.mimeType || 'audio/webm');
-      };
-      mr.start();
-      setRecording(true);
-    } catch {
-      addBubble('ai', 'فعّل الميكروفون من إعدادات المتصفح');
-    }
+    return 'اضغط وقول مثلاً: قهوة ١٥ ريال';
   };
 
   return (
     <div className="page voice-screen">
       <h1 className="page-title">سجّل بالصوت</h1>
-      <p className="page-subtitle text-secondary">قل مصروفك بالعربي — نحلّله ونسجّله</p>
+      <p className="page-subtitle text-secondary">
+        نفهم كلامك أولاً — ثم تأكد قبل الحفظ
+      </p>
+
+      <p className="voice-pipeline-hint text-secondary">
+        OpenRouter: تفريغ صوت (Gemini) + استخراج مصروف (Claude) → تأكيدك
+      </p>
 
       <div className="mic-rings">
         <div className="mic-ring" />
@@ -113,24 +72,53 @@ const VoiceScreen = () => {
         <div className="mic-ring" />
         <button
           type="button"
-          className={`mic-btn-large${recording ? ' recording' : ''}`}
+          className={`mic-btn-large${isRecording ? ' recording' : ''}${state === 'done' ? ' done' : ''}${isProcessing ? ' processing' : ''}`}
           onClick={handleMic}
-          disabled={processing}
+          disabled={isProcessing || state === 'done'}
           aria-label="تسجيل"
         >
-          {processing ? '⏳' : recording ? '⏹' : '🎤'}
+          {micIcon()}
         </button>
       </div>
 
-      <p className="text-secondary" style={{ marginBottom: 24 }}>
-        {recording ? 'تكلم الآن...' : processing ? 'جاري التحليل...' : 'اضغط وقول مثلاً: قهوة ١٥ ريال'}
-      </p>
+      {statusText() && (
+        <p className="text-secondary voice-status">{statusText()}</p>
+      )}
 
-      <div style={{ width: '100%', maxWidth: 360 }}>
-        {bubbles.map((b) => (
-          <div key={b.id} className={`voice-bubble ${b.role}`}>{b.text}</div>
-        ))}
-      </div>
+      {liveText && isRecording && (
+        <div className="voice-live-box" aria-live="polite">
+          <span className="voice-live-label">تسمع الآن</span>
+          <p className="voice-live-text">{liveText}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="voice-result-box error">
+          <p className="voice-live-text">{error}</p>
+        </div>
+      )}
+
+      {state === 'done' && saved && (
+        <div className="voice-result-box ai">
+          <p className="voice-live-text">{saved.messageAr}</p>
+          <p className="voice-result-meta">
+            {formatRiyal(saved.amount)}
+            {' · '}
+            {getCategoryMeta(saved.category).labelAr}
+          </p>
+        </div>
+      )}
+
+      <VoiceConfirmSheet
+        open={Boolean(showSheet)}
+        data={result}
+        onConfirm={confirmExpense}
+        onRetry={() => {
+          dismiss();
+          startRecording();
+        }}
+        onClose={dismiss}
+      />
     </div>
   );
 };

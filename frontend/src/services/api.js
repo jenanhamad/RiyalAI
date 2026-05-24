@@ -87,12 +87,29 @@ export const api = {
     return axios.get(`${API_BASE}/leaderboard`, { headers });
   },
 
-  voiceExpense: async (audioBase64, mimeType = 'audio/webm', transcription = null) => {
+  /** Process voice — transcribe + extract, does NOT save */
+  voiceProcess: async ({ audioBlob, filename = 'voice.webm', transcription }) => {
     const headers = await authHeaders();
-    const payload = transcription
-      ? { transcription, mimeType }
-      : { audioBase64, mimeType };
-    return axios.post(`${API_BASE}/voice/expense`, payload, { headers, timeout: 90000 });
+    if (transcription) {
+      const form = new FormData();
+      form.append('transcription', transcription);
+      return axios.post(`${API_BASE}/voice/process`, form, {
+        headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+        timeout: 90000,
+      });
+    }
+    const form = new FormData();
+    form.append('audio_file', audioBlob, filename);
+    return axios.post(`${API_BASE}/voice/process`, form, {
+      headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
+    });
+  },
+
+  /** Confirm and save after user approves sheet */
+  voiceConfirm: async (data) => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/voice/confirm`, data, { headers, timeout: 30000 });
   },
 };
 

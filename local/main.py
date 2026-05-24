@@ -12,7 +12,8 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, Header, UploadFile, File, Request
+import asyncio
+from fastapi import FastAPI, Depends, HTTPException, Header, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -24,6 +25,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 from database import init_db, get_connection
 import gamification as gam
 import auth
+import voice_service as voice
 
 # OpenRouter only — import by path so we don't shadow local/gamification.py
 import importlib.util
@@ -74,13 +76,12 @@ def get_user_id(authorization: str | None = Header(None)) -> str:
 
 
 class RegisterBody(BaseModel):
-    email: str
+    username: str
     password: str
-    displayName: str = ""
 
 
 class LoginBody(BaseModel):
-    email: str
+    username: str
     password: str
 
 
@@ -118,13 +119,13 @@ def _expense_row_to_api(row) -> dict:
 
 @app.get("/expenses/health")
 def health():
-    return {"status": "healthy", "service": "RiyalAI-Local", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "healthy", "service": "ريالي-ryialAI", "timestamp": datetime.utcnow().isoformat()}
 
 
 @app.post("/auth/register")
 def register(body: RegisterBody):
     try:
-        return auth.register_user(body.email, body.password, body.displayName)
+        return auth.register_user(body.username, body.password)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -132,9 +133,9 @@ def register(body: RegisterBody):
 @app.post("/auth/login")
 def login(body: LoginBody):
     try:
-        return auth.login_user(body.email, body.password)
+        return auth.login_user(body.username, body.password)
     except ValueError:
-        raise HTTPException(401, "Invalid email or password")
+        raise HTTPException(401, "Invalid username or password")
 
 
 @app.get("/profile")
@@ -187,8 +188,7 @@ def list_expenses(user_id: str = Depends(get_user_id)):
     return {"expenses": items, "count": len(items)}
 
 
-@app.post("/expenses")
-def create_expense(body: ExpenseBody, user_id: str = Depends(get_user_id)):
+def _create_expense_for_user(body: ExpenseBody, user_id: str, *, voice_bonus: bool = False):
     if not body.merchant or body.amount <= 0:
         raise HTTPException(400, "Merchant and positive amount are required")
 
@@ -211,7 +211,7 @@ def create_expense(body: ExpenseBody, user_id: str = Depends(get_user_id)):
     row = conn.execute("SELECT * FROM expenses WHERE expense_id = ?", (expense_id,)).fetchone()
     conn.close()
 
-    gamification_result = gam.award_xp_for_expense(user_id, expense_date)
+    gamification_result = gam.award_xp_for_expense(user_id, expense_date, voice_bonus=voice_bonus)
     gam.check_and_complete_challenges(user_id)
 
     return {
@@ -220,6 +220,11 @@ def create_expense(body: ExpenseBody, user_id: str = Depends(get_user_id)):
         "expense": _expense_row_to_api(row),
         "gamification": gamification_result,
     }
+
+
+@app.post("/expenses")
+def create_expense(body: ExpenseBody, user_id: str = Depends(get_user_id)):
+    return _create_expense_for_user(body, user_id)
 
 
 @app.get("/expenses/recurring")
@@ -378,6 +383,131 @@ def serve_upload(user_id: str, expense_id: str, filename: str):
     return FileResponse(path)
 
 
+def _check_voice_rate_limit(user_id: str):
+    from datetime import date
+    today = date.today().isoformat()
+    conn = get_connection()
+    row = conn.execute(
+        """SELECT COUNT(*) AS c FROM voice_logs
+           WHERE user_id = ? AND created_at >= ? AND status = 'processed'""",
+        (user_id, today),
+    ).fetchone()
+    conn.close()
+    if int(row["c"]) >= voice.VOICE_DAILY_LIMIT:
+        raise HTTPException(429, detail={
+            "error": f"تجاوزت الحد اليومي ({voice.VOICE_DAILY_LIMIT} تسجيل صوتي)",
+        })
+
+
+def _log_voice(user_id: str, transcription: str, amount, category, confidence, status: str):
+    conn = get_connection()
+    conn.execute(
+        """INSERT INTO voice_logs (log_id, user_id, transcription, amount, category,
+           confidence, status, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            str(uuid.uuid4()), user_id, transcription, amount, category, confidence,
+            status, datetime.utcnow().isoformat(),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+class VoiceConfirmRequest(BaseModel):
+    amount: float
+    category: str
+    note: str | None = None
+    transcription: str
+
+
+@app.post("/voice/process")
+async def voice_process(
+    audio_file: UploadFile | None = File(None),
+    transcription: str | None = Form(None),
+    user_id: str = Depends(get_user_id),
+):
+    """Transcribe + extract — does NOT save expense."""
+    _check_voice_rate_limit(user_id)
+    text = (transcription or "").strip()
+
+    if not text:
+        if not audio_file:
+            raise HTTPException(400, "audio_file or transcription is required")
+        audio_bytes = await audio_file.read()
+        if not audio_bytes:
+            raise HTTPException(400, "Empty audio file")
+        filename = audio_file.filename or "voice.webm"
+        try:
+            text = await asyncio.to_thread(voice.transcribe_audio, audio_bytes, filename)
+        except ValueError as e:
+            raise HTTPException(503, str(e))
+        except Exception as e:
+            _log_voice(user_id, "", None, None, None, "failed")
+            raise HTTPException(500, f"Transcription failed: {e}")
+
+    if not text:
+        raise HTTPException(400, "Could not transcribe audio")
+
+    try:
+        extracted = await asyncio.to_thread(voice.extract_expense, text)
+    except Exception as e:
+        _log_voice(user_id, text, None, None, None, "failed")
+        raise HTTPException(500, f"Extraction failed: {e}")
+
+    _log_voice(
+        user_id, text, extracted["amount"], extracted["category"],
+        extracted["confidence"], "processed",
+    )
+
+    return {
+        "transcription": text,
+        "amount": extracted["amount"],
+        "category": extracted["category"],
+        "note": extracted.get("note"),
+        "confidence": extracted["confidence"],
+        "xp_awarded": 0,
+    }
+
+
+@app.post("/voice/confirm")
+def voice_confirm(body: VoiceConfirmRequest, user_id: str = Depends(get_user_id)):
+    """Save expense after user confirms extracted data."""
+    if body.amount <= 0:
+        raise HTTPException(400, detail={
+            "error": "amount must be positive",
+            "transcription": body.transcription,
+        })
+
+    category = voice.normalize_category(body.category)
+    merchant = (body.note or "مصروف صوتي")[:100]
+    expense_body = ExpenseBody(
+        merchant=merchant,
+        amount=float(body.amount),
+        category=category,
+        description=body.note or "",
+        notes=f"صوت: {body.transcription[:200]}",
+        paymentMethod="Digital Wallet",
+    )
+    result = _create_expense_for_user(expense_body, user_id, voice_bonus=True)
+    xp = result["gamification"]["xpEarned"]
+    _log_voice(
+        user_id, body.transcription, body.amount, category, None, "confirmed",
+    )
+    return {
+        "transcription": body.transcription,
+        "amount": body.amount,
+        "category": category,
+        "note": body.note,
+        "confidence": 1.0,
+        "xp_awarded": xp,
+        "expenseId": result["expenseId"],
+        "expense": result["expense"],
+        "gamification": result["gamification"],
+        "messageAr": f"تم تسجيل {body.amount} ريال — +{xp} XP",
+    }
+
+
 class VoiceBody(BaseModel):
     audioBase64: str | None = None
     transcription: str | None = None
@@ -385,38 +515,11 @@ class VoiceBody(BaseModel):
 
 
 @app.post("/voice/expense")
-def voice_expense(body: VoiceBody, user_id: str = Depends(get_user_id)):
-    transcription = (body.transcription or "").strip()
-    if not transcription and not body.audioBase64:
-        raise HTTPException(400, "audioBase64 or transcription is required")
-    try:
-        if not transcription:
-            transcription = orouter.transcribe_audio_base64(body.audioBase64, body.mimeType)
-        extracted = orouter.extract_expense_from_text(transcription)
-    except Exception as e:
-        raise HTTPException(500, f"Voice processing failed: {e}")
-
-    amount = float(extracted.get("amount", 0))
-    if amount <= 0:
-        raise HTTPException(400, detail={
-            "error": "Could not detect amount",
-            "transcription": transcription,
-            "extracted": extracted,
-        })
-
-    expense_body = ExpenseBody(
-        merchant=(extracted.get("merchant") or extracted.get("note") or "مصروف صوتي")[:100],
-        amount=amount,
-        category=extracted.get("category", "Other"),
-        description=extracted.get("note", ""),
-        notes=f"صوت: {transcription[:200]}",
-        paymentMethod="Digital Wallet",
-    )
-    result = create_expense(expense_body, user_id)
-    result["transcription"] = transcription
-    result["extracted"] = extracted
-    result["messageAr"] = f"تم تسجيل {amount} ريال — +{result['gamification']['xpEarned']} XP"
-    return result
+def voice_expense_legacy(body: VoiceBody, user_id: str = Depends(get_user_id)):
+    """Legacy one-shot endpoint — prefer /voice/process + /voice/confirm."""
+    raise HTTPException(410, detail={
+        "error": "Use POST /voice/process then POST /voice/confirm",
+    })
 
 
 # Production: serve React SPA (must be after API routes)

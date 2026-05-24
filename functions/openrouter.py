@@ -50,12 +50,13 @@ def chat_completion(messages, model=None, max_tokens=1024, temperature=0.3):
 
 
 def transcribe_audio_base64(audio_b64, mime_type="audio/webm"):
-    """Transcribe Arabic audio using a multimodal model."""
+    """Transcribe Arabic audio using a multimodal model on OpenRouter."""
     content = [
         {
             "type": "text",
             "text": (
-                "انسخ هذا التسجيل الصوتي بالعربية (اللهجة السعودية) حرفياً. "
+                "هذا تسجيل صوتي بالعامية السعودية لتسجيل مصروف مالي. "
+                "انسخ التسجيل بالعربية (اللهجة السعودية) حرفياً. "
                 "أرجع النص فقط بدون شرح."
             ),
         },
@@ -91,21 +92,31 @@ def transcribe_audio_base64(audio_b64, mime_type="audio/webm"):
 
 
 def extract_expense_from_text(transcription):
-    """Extract expense fields from Arabic transcription."""
-    prompt = (
-        f'Extract expense details from this Arabic text: "{transcription}"\n'
-        "Return JSON only with keys: amount (number), category (string in English "
-        "matching: Food & Dining, Transportation, Shopping, Entertainment, Utilities, "
-        "Healthcare, Groceries, Gas, Other), note (string), merchant (string).\n"
-        "Use Saudi dialect understanding. If amount missing use 0."
-    )
+    """Extract expense fields from Arabic transcription via OpenRouter."""
+    prompt = f"""أنت مساعد لاستخراج بيانات المصاريف من النص العربي.
+
+استخرج من هذه الجملة:
+"{transcription}"
+
+أرجع JSON فقط بدون أي نص إضافي:
+{{
+  "amount": <رقم فقط، بدون رمز العملة>,
+  "category": <واحدة من: طعام، تنقل، ترفيه، تسوق، صحة، تعليم، فواتير، أخرى
+    أو بالإنجليزية: Food & Dining, Transportation, Shopping, Entertainment,
+    Utilities, Healthcare, Groceries, Gas, Other>,
+  "note": <ملاحظة قصيرة اختيارية أو null>,
+  "merchant": <اسم المتجر إن وُجد أو null>,
+  "confidence": <رقم من 0.0 إلى 1.0 يعكس مدى وضوح البيانات>
+}}
+
+افهم العامية السعودية (مية = 100، كم = سعر، إلخ). إذا المبلغ غير واضح استخدم 0."""
     raw = chat_completion(
         [{"role": "user", "content": prompt}],
         max_tokens=256,
         temperature=0.1,
     )
     raw = raw.strip()
-    if raw.startswith("```"):
+    if "```" in raw:
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]

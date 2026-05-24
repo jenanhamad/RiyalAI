@@ -5,6 +5,7 @@ import uuid
 from database import get_connection
 
 XP_PER_EXPENSE = 20
+VOICE_XP_BONUS = 5
 XP_PER_LEVEL = 500
 MAX_LEVEL = 20
 STREAK_MULTIPLIER_DAYS = 7
@@ -37,11 +38,12 @@ def get_or_create_profile(user_id, email=None):
         conn.close()
         return profile
 
+    fallback_username = f"user_{user_id[:8]}"
     conn.execute(
-        """INSERT INTO users (user_id, email, password_hash, xp, level, streak,
+        """INSERT INTO users (user_id, username, email, password_hash, display_name, xp, level, streak,
            weekly_xp, week_start, created_at, updated_at)
-           VALUES (?, ?, '', 0, 1, 0, 0, ?, ?, ?)""",
-        (user_id, email or f"{user_id}@local", _week_start(), now, now),
+           VALUES (?, ?, ?, '', ?, 0, 1, 0, 0, ?, ?, ?)""",
+        (user_id, fallback_username, f"{user_id}@local.riyalai", fallback_username, _week_start(), now, now),
     )
     conn.commit()
     row = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
@@ -62,7 +64,7 @@ def _maybe_reset_weekly_xp(conn, profile, user_id):
         profile["week_start"] = current_week
 
 
-def award_xp_for_expense(user_id, expense_date=None):
+def award_xp_for_expense(user_id, expense_date=None, voice_bonus=False):
     profile = get_or_create_profile(user_id)
     conn = get_connection()
     today = date.fromisoformat(str(expense_date)[:10]) if expense_date else date.today()
@@ -79,7 +81,8 @@ def award_xp_for_expense(user_id, expense_date=None):
         streak = 1
 
     multiplier = 2 if streak >= STREAK_MULTIPLIER_DAYS else 1
-    xp_earned = XP_PER_EXPENSE * multiplier
+    bonus = VOICE_XP_BONUS if voice_bonus else 0
+    xp_earned = XP_PER_EXPENSE * multiplier + bonus
     old_xp = int(profile.get("xp") or 0)
     new_xp = old_xp + xp_earned
     old_level = _level_from_xp(old_xp)
@@ -328,7 +331,7 @@ def get_leaderboard(user_id, limit=20):
         weekly = int(u.get("weekly_xp") or 0) if u.get("week_start") == current_week else 0
         rankings.append({
             "userId": u["user_id"],
-            "displayName": u.get("display_name") or u.get("email", "مستخدم")[:20],
+            "displayName": u.get("username") or u.get("display_name") or "مستخدم",
             "weeklyXp": weekly,
             "level": int(u.get("level") or 1),
             "xp": int(u.get("xp") or 0),
