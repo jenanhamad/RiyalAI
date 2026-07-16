@@ -5,8 +5,8 @@
   "start_url": ".",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#1B2A4A",
-  "background_color": "#F5F2EC",
+  "theme_color": "#6C4CF0",
+  "background_color": "#F3F5FB",
   "lang": "ar",
   "dir": "rtl"
 }

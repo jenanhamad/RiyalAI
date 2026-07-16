@@ -1,27 +1,27 @@
-/* Category colors derived from Amed 2026 brand palette */
+/* Category colors derived from the Nova brand palette */
 export const CATEGORIES = [
-  { id: 'Food & Dining', labelAr: 'طعام', icon: '🍽️', color: '#C96A3E' },
-  { id: 'Transportation', labelAr: 'مواصلات', icon: '🚗', color: '#253A63' },
-  { id: 'Shopping', labelAr: 'تسوق', icon: '🛍️', color: '#C0503F' },
-  { id: 'Entertainment', labelAr: 'ترفيه', icon: '🎬', color: '#1B2A4A' },
-  { id: 'Utilities', labelAr: 'فواتير', icon: '💡', color: '#4C8C6B' },
-  { id: 'Healthcare', labelAr: 'صحة', icon: '🏥', color: '#B85A32' },
-  { id: 'Groceries', labelAr: 'بقالة', icon: '🛒', color: '#4CAF7D' },
-  { id: 'Gas', labelAr: 'وقود', icon: '⛽', color: '#6B7280' },
-  { id: 'Other', labelAr: 'أخرى', icon: '📝', color: '#A39E90' },
+  { id: 'Food & Dining', labelAr: 'طعام', icon: '🍽️', color: '#F4A524' },
+  { id: 'Transportation', labelAr: 'مواصلات', icon: '🚗', color: '#0E9488' },
+  { id: 'Shopping', labelAr: 'تسوق', icon: '🛍️', color: '#6C4CF0' },
+  { id: 'Entertainment', labelAr: 'ترفيه', icon: '🎬', color: '#8A6BFF' },
+  { id: 'Utilities', labelAr: 'فواتير', icon: '💡', color: '#17B6A6' },
+  { id: 'Healthcare', labelAr: 'صحة', icon: '🏥', color: '#F5405E' },
+  { id: 'Groceries', labelAr: 'بقالة', icon: '🛒', color: '#12B981' },
+  { id: 'Gas', labelAr: 'وقود', icon: '⛽', color: '#64708A' },
+  { id: 'Other', labelAr: 'أخرى', icon: '📝', color: '#97A2B8' },
 ];
 
 export const BUSINESS_CATEGORIES = [
-  { id: 'Marketing', labelAr: 'تسويق', icon: '📣', color: '#C96A3E' },
-  { id: 'Salaries', labelAr: 'رواتب', icon: '👥', color: '#1B2A4A' },
-  { id: 'Inventory', labelAr: 'مخزون', icon: '📦', color: '#4C8C6B' },
-  { id: 'Rent', labelAr: 'إيجار', icon: '🏠', color: '#253A63' },
-  { id: 'Tax', labelAr: 'ضريبة', icon: '🧾', color: '#C0503F' },
-  { id: 'Equipment', labelAr: 'معدات', icon: '🔧', color: '#6B7280' },
-  { id: 'Commissions', labelAr: 'عمولات', icon: '٪', color: '#B85A32' },
-  { id: 'Utilities', labelAr: 'فواتير', icon: '💡', color: '#4CAF7D' },
-  { id: 'Transportation', labelAr: 'مواصلات', icon: '🚗', color: '#253A63' },
-  { id: 'Other', labelAr: 'أخرى', icon: '📝', color: '#A39E90' },
+  { id: 'Marketing', labelAr: 'تسويق', icon: '📣', color: '#6C4CF0' },
+  { id: 'Salaries', labelAr: 'رواتب', icon: '👥', color: '#0E9488' },
+  { id: 'Inventory', labelAr: 'مخزون', icon: '📦', color: '#12B981' },
+  { id: 'Rent', labelAr: 'إيجار', icon: '🏠', color: '#8A6BFF' },
+  { id: 'Tax', labelAr: 'ضريبة', icon: '🧾', color: '#F5405E' },
+  { id: 'Equipment', labelAr: 'معدات', icon: '🔧', color: '#64708A' },
+  { id: 'Commissions', labelAr: 'عمولات', icon: '٪', color: '#F4A524' },
+  { id: 'Utilities', labelAr: 'فواتير', icon: '💡', color: '#17B6A6' },
+  { id: 'Transportation', labelAr: 'مواصلات', icon: '🚗', color: '#0891B2' },
+  { id: 'Other', labelAr: 'أخرى', icon: '📝', color: '#97A2B8' },
 ];
 
 export function getCategoryMeta(name, mode = 'personal') {

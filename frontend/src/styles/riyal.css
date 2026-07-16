@@ -1,53 +1,65 @@
-/* ريالي ryialAI — Amed 2026 Design System (امد 2026 × الإنماء × طويق) */
+/* ريالي ryialAI — Nova Design System (fintech premium, RTL) */
 :root {
-  /* ── Core palette ── */
-  --bg: #F5F2EC;
+  /* ── Neutrals (cool slate) ── */
+  --bg: #F3F5FB;
+  --bg-2: #EDF0F8;
   --surface: #FFFFFF;
-  --border: #E7E1D6;
+  --surface-2: #F8FAFF;
+  --border: #E7EBF4;
+  --border-strong: #D8DEEC;
   --white: #FFFFFF;
 
-  --navy: #1B2A4A;
-  --navy-tint: #253A63;
-  --navy-soft: #1B2A4A14;
+  --ink: #0E1526;
+  --text: #1B2437;
+  --text-muted: #64708A;
+  --text-faint: #97A2B8;
 
-  --terracotta: #C96A3E;
-  --terracotta-tint: #B85A32;
-  --terracotta-soft: #C96A3E1A;
+  /* ── Personal brand — indigo/violet (energetic) ── */
+  --terracotta: #6C4CF0;
+  --terracotta-tint: #8A6BFF;
+  --terracotta-soft: #6C4CF014;
 
-  --mint: #4C8C6B;
-  --mint-tint: #4CAF7D;
-  --mint-soft: #4C8C6B1A;
+  /* ── Business brand — teal (professional / growth) ── */
+  --navy: #0E9488;
+  --navy-tint: #17B6A6;
+  --navy-soft: #0E948814;
 
-  --rose: #C0503F;
-  --rose-soft: #C0503F1A;
+  /* ── Reward / gamification — amber gold ── */
+  --amber-gold: #F4A524;
+  --amber-gold-tint: #FFC24D;
+  --amber-gold-soft: #F4A52418;
 
-  --text: #1E2430;
-  --text-muted: #6B7280;
-  --text-faint: #A39E90;
+  /* ── Money states ── */
+  --mint: #12B981;
+  --mint-tint: #34D9A0;
+  --mint-soft: #12B98114;
 
-  /* ── Mode accent — personal = terracotta, business = navy ── */
+  --rose: #F5405E;
+  --rose-tint: #FF6B82;
+  --rose-soft: #F5405E14;
+
+  /* ── Mode accent — personal = violet, business = teal ── */
   --mode: var(--terracotta);
   --mode-soft: var(--terracotta-soft);
   --mode-tint: var(--terracotta-tint);
-  --mode-glow: rgba(201, 106, 62, 0.22);
-  --mode-glow-strong: rgba(201, 106, 62, 0.35);
-  --mode-shadow: rgba(201, 106, 62, 0.25);
-  --mode-shadow: rgba(201, 106, 62, 0.25);
+  --mode-glow: rgba(108, 76, 240, 0.22);
+  --mode-glow-strong: rgba(108, 76, 240, 0.38);
+  --mode-shadow: rgba(108, 76, 240, 0.30);
 
-  /* ── Gamification — always terracotta regardless of mode ── */
-  --gamify: var(--terracotta);
-  --gamify-soft: var(--terracotta-soft);
-  --gamify-tint: var(--terracotta-tint);
-  --gamify-glow: rgba(201, 106, 62, 0.22);
-  --gamify-glow-strong: rgba(201, 106, 62, 0.35);
+  /* ── Gamification — always amber gold regardless of mode ── */
+  --gamify: var(--amber-gold);
+  --gamify-soft: var(--amber-gold-soft);
+  --gamify-tint: var(--amber-gold-tint);
+  --gamify-glow: rgba(244, 165, 36, 0.28);
+  --gamify-glow-strong: rgba(244, 165, 36, 0.45);
 
   /* ── Semantic states ── */
   --income: var(--mint);
   --expense: var(--rose);
   --success: var(--mint);
   --success-soft: var(--mint-soft);
-  --warning: var(--rose);
-  --warning-soft: var(--rose-soft);
+  --warning: var(--amber-gold);
+  --warning-soft: var(--amber-gold-soft);
   --danger: var(--rose);
   --danger-soft: var(--rose-soft);
 
@@ -64,23 +76,26 @@
   --green-glow-strong: var(--mode-glow-strong);
   --gold: var(--gamify);
   --gold-light: var(--gamify-soft);
-  --gold-tint: #E8B84A;
+  --gold-tint: var(--gamify-tint);
   --text-secondary: var(--text-muted);
-  --amber: var(--rose);
+  --amber: var(--amber-gold);
   --blue: var(--navy);
 
   --font-heading: 'Cairo', 'IBM Plex Sans Arabic', sans-serif;
   --font-ar: 'IBM Plex Sans Arabic', sans-serif;
   --font-mono: 'Space Mono', monospace;
 
-  --nav-height: 72px;
+  --nav-height: 74px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --radius: 20px;
+  --radius: 22px;
+  --radius-sm: 14px;
   --radius-btn: 16px;
-  --radius-balance: 24px;
+  --radius-balance: 26px;
   --radius-pill: 100px;
-  --shadow-card: 0 1px 2px rgba(27, 42, 74, 0.04);
-  --shadow-balance: 0 8px 32px rgba(27, 42, 74, 0.08);
+  --shadow-card: 0 1px 2px rgba(14, 21, 38, 0.04), 0 6px 16px rgba(14, 21, 38, 0.05);
+  --shadow-md: 0 10px 30px rgba(14, 21, 38, 0.08);
+  --shadow-lg: 0 20px 48px rgba(14, 21, 38, 0.14);
+  --shadow-balance: 0 14px 36px rgba(14, 21, 38, 0.12);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -103,12 +118,14 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(27, 42, 74, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(27, 42, 74, 0.025) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background:
+    radial-gradient(680px 460px at 100% -5%, var(--mode-soft), transparent 60%),
+    radial-gradient(560px 420px at 0% 8%, var(--gamify-soft), transparent 55%),
+    radial-gradient(720px 520px at 50% 108%, var(--navy-soft), transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
   pointer-events: none;
   z-index: 0;
+  transition: background 0.4s ease;
 }
 
 #root { position: relative; z-index: 1; min-height: 100vh; }
@@ -145,7 +162,7 @@ body::before {
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .page-subtitle {
@@ -168,15 +185,14 @@ body::before {
   box-shadow: var(--shadow-card);
 }
 
-/* XP Hero */
-/* Balance / XP hero — gamification card, always terracotta */
+/* Balance / XP hero — reflects current mode, gold XP accents on top */
 .xp-hero {
-  padding: 20px;
+  padding: 22px;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--gamify) 0%, var(--gamify-tint) 100%);
+  background: linear-gradient(140deg, var(--mode) 0%, var(--mode-tint) 100%);
   border: none;
   border-radius: var(--radius-balance);
-  box-shadow: 0 8px 32px var(--gamify-glow);
+  box-shadow: 0 16px 36px var(--mode-glow), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   color: var(--white);
   position: relative;
   overflow: hidden;
@@ -185,13 +201,27 @@ body::before {
 .xp-hero::before {
   content: '';
   position: absolute;
-  top: -40%;
-  left: -20%;
-  width: 60%;
-  height: 120%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, transparent 70%);
+  top: -45%;
+  left: -15%;
+  width: 65%;
+  height: 130%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.18) 0%, transparent 70%);
   pointer-events: none;
 }
+
+.xp-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -55%;
+  right: -10%;
+  width: 55%;
+  height: 120%;
+  background: radial-gradient(circle, var(--gamify-glow) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.xp-hero > * { position: relative; z-index: 1; }
 
 .balance-card {
   padding: 22px 20px;
@@ -320,12 +350,15 @@ body::before {
   border-radius: var(--radius);
   background: var(--card);
   border: 1px solid var(--border);
-  transition: box-shadow 0.2s;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
+.challenge-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
 .challenge-card.ai-active {
-  border-color: var(--gamify);
-  box-shadow: 0 0 12px var(--gamify-glow);
+  border-color: color-mix(in srgb, var(--gamify) 45%, transparent);
+  box-shadow: 0 0 0 1px var(--gamify-soft), 0 8px 24px var(--gamify-glow);
 }
 
 .challenge-card.ai-active .progress-ring-fill {
@@ -950,14 +983,19 @@ body::before {
   padding: 14px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   margin-bottom: 8px;
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.2s;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
-.expense-item:hover { border-color: var(--green-mid); }
+.expense-item:hover {
+  border-color: color-mix(in srgb, var(--mode) 40%, transparent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
 
 .expense-item-icon {
   width: 44px;
@@ -1035,10 +1073,12 @@ body::before {
   max-width: 480px;
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   border-top: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 28px rgba(14, 21, 38, 0.08);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -1053,11 +1093,12 @@ body::before {
   text-decoration: none;
   color: var(--text-muted);
   font-size: 0.65rem;
+  font-weight: 600;
   padding: 8px 12px;
-  transition: color 0.2s;
+  transition: color 0.2s, transform 0.2s;
 }
 
-.bottom-nav-item.active { color: var(--mode); }
+.bottom-nav-item.active { color: var(--mode); transform: translateY(-2px); }
 .bottom-nav-item.active .bottom-nav-icon { filter: drop-shadow(0 0 6px var(--mode-glow-strong)); }
 
 .bottom-nav-center {
@@ -1098,7 +1139,7 @@ body::before {
   font-family: var(--font-heading);
   font-size: 2.5rem;
   font-weight: 900;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .auth-form {
@@ -1157,12 +1198,13 @@ body::before {
 
 .form-field input:focus {
   outline: none;
-  border-color: var(--green-mid);
+  border-color: var(--mode);
+  box-shadow: 0 0 0 3px var(--mode-soft);
 }
 
 .btn-primary {
   width: 100%;
-  padding: 14px;
+  padding: 15px;
   background: linear-gradient(135deg, var(--mode), var(--mode-tint));
   color: var(--white);
   border: none;
@@ -1172,21 +1214,28 @@ body::before {
   font-size: 1rem;
   cursor: pointer;
   margin-top: 8px;
-  box-shadow: 0 4px 14px var(--mode-shadow);
+  box-shadow: 0 8px 20px var(--mode-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary:hover { filter: brightness(1.04); box-shadow: 0 10px 26px var(--mode-shadow); }
+.btn-primary:active { transform: translateY(1px) scale(0.99); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
 .btn-outline {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: transparent;
+  padding: 13px 16px;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
   color: var(--text);
   font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
+
+.btn-outline:hover { border-color: var(--mode); background: var(--mode-soft); }
 
 /* Voice confirm bottom sheet */
 .voice-sheet-backdrop {
@@ -1451,7 +1500,8 @@ body::before {
   padding: 14px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
 }
 
 .stat-mini-label { font-size: 0.7rem; color: var(--text-muted); }
@@ -1847,9 +1897,9 @@ body::before {
   --mode: var(--navy);
   --mode-soft: var(--navy-soft);
   --mode-tint: var(--navy-tint);
-  --mode-glow: rgba(27, 42, 74, 0.15);
-  --mode-glow-strong: rgba(27, 42, 74, 0.25);
-  --mode-shadow: rgba(27, 42, 74, 0.25);
+  --mode-glow: rgba(14, 148, 136, 0.22);
+  --mode-glow-strong: rgba(14, 148, 136, 0.38);
+  --mode-shadow: rgba(14, 148, 136, 0.30);
   --green-main: var(--navy);
   --green-mid: var(--navy);
   --green-light: var(--navy-soft);
