@@ -592,8 +592,28 @@ body::before {
   object-fit: cover;
 }
 
+.voice-home {
+  justify-content: flex-start;
+  padding-top: 16px;
+}
+
+.voice-recent-list {
+  width: 100%;
+  max-width: 360px;
+  margin-top: 4px;
+}
+
+.voice-recent-item {
+  margin-bottom: 8px;
+}
+
+.voice-recent-item:last-child {
+  margin-bottom: 0;
+}
+
 .voice-categories-title {
-  margin-top: 28px;
+  margin-top: 20px;
+  margin-bottom: 12px;
 }
 
 .voice-category-block {

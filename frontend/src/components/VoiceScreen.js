@@ -4,7 +4,7 @@ import { useVoiceExpense } from '../hooks/useVoiceExpense';
 import VoiceConfirmSheet from './VoiceConfirmSheet';
 import { api } from '../services/api';
 import { formatRiyal, getGreeting } from '../utils/format';
-import { CATEGORIES, getCategoryMeta } from '../utils/categories';
+import { getCategoryMeta } from '../utils/categories';
 
 const VoiceScreen = ({ user }) => {
   const [expenses, setExpenses] = useState([]);
@@ -63,16 +63,11 @@ const VoiceScreen = ({ user }) => {
     return () => clearTimeout(t);
   }, [state, dismiss, previewUrl]);
 
-  const grouped = useMemo(() => {
-    const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-    return CATEGORIES.map((cat) => ({
-      ...cat,
-      items: sorted.filter((exp) => exp.category === cat.id),
-      total: sorted
-        .filter((exp) => exp.category === cat.id)
-        .reduce((sum, exp) => sum + Number(exp.amount || 0), 0),
-    })).filter((group) => group.items.length > 0);
-  }, [expenses]);
+  const recentExpenses = useMemo(() => (
+    [...expenses]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 3)
+  ), [expenses]);
 
   const handleMainAction = () => {
     if (isProcessing) return;
@@ -215,46 +210,39 @@ const VoiceScreen = ({ user }) => {
         </div>
       )}
 
-      <h2 className="section-title voice-categories-title">مصروفاتك حسب التصنيف</h2>
+      <h2 className="section-title voice-categories-title">آخر المصروفات</h2>
 
       {loadingExpenses ? (
         <div className="empty-state">
           <div className="spinner" />
         </div>
-      ) : grouped.length === 0 ? (
+      ) : recentExpenses.length === 0 ? (
         <div className="empty-state">
           <p>ما عندك مصروفات بعد</p>
           <p>🎤 صوت أو 📷 إيصال</p>
         </div>
       ) : (
-        grouped.map((group) => (
-          <section key={group.id} className="voice-category-block">
-            <div className="voice-category-header">
-              <span className="voice-category-icon" style={{ borderColor: group.color }}>
-                {group.icon}
-              </span>
-              <div className="voice-category-meta">
-                <h3>{group.labelAr}</h3>
-                <p className="text-secondary">{formatRiyal(group.total)}</p>
-              </div>
-            </div>
-            <div className="voice-category-items">
-              {group.items.map((exp) => (
-                <Link
-                  key={exp.expenseId}
-                  to={`/expense/${exp.expenseId}`}
-                  className="expense-item voice-category-item"
-                >
-                  <div className="expense-item-body">
-                    <div className="expense-item-merchant">{exp.merchant}</div>
-                    <div className="expense-item-meta">{exp.date}</div>
-                  </div>
-                  <div className="expense-item-amount">{formatRiyal(exp.amount)}</div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))
+        <div className="voice-recent-list">
+          {recentExpenses.map((exp) => {
+            const cat = getCategoryMeta(exp.category);
+            return (
+              <Link
+                key={exp.expenseId}
+                to={`/expense/${exp.expenseId}`}
+                className="expense-item voice-recent-item"
+              >
+                <div className="expense-item-icon" style={{ borderLeft: `3px solid ${cat.color}` }}>
+                  {cat.icon}
+                </div>
+                <div className="expense-item-body">
+                  <div className="expense-item-merchant">{exp.merchant}</div>
+                  <div className="expense-item-meta">{cat.labelAr} · {exp.date}</div>
+                </div>
+                <div className="expense-item-amount">{formatRiyal(exp.amount)}</div>
+              </Link>
+            );
+          })}
+        </div>
       )}
 
       <VoiceConfirmSheet
