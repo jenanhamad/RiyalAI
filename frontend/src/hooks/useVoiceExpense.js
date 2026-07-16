@@ -16,6 +16,8 @@ export function useVoiceExpense({ onSaved, accountMode = 'personal' } = {}) {
   const speechRef = useRef(null);
   const chunksRef = useRef([]);
   const finalTranscriptRef = useRef('');
+  const latestTranscriptRef = useRef('');
+  const recordingActiveRef = useRef(false);
   const streamRef = useRef(null);
   const modeRef = useRef(accountMode);
   modeRef.current = accountMode;
@@ -86,6 +88,17 @@ export function useVoiceExpense({ onSaved, accountMode = 'personal' } = {}) {
     }
   }, [handleExtracted]);
 
+  const finishSpeechCapture = useCallback((text) => {
+    recordingActiveRef.current = false;
+    setLiveText('');
+    setState('idle');
+    if (text) {
+      processTranscription(text);
+    } else {
+      setError('ما سمعت كلام — جرّب مرة ثانية');
+    }
+  }, [processTranscription]);
+
   const processAudioBlob = useCallback(async (blob, filename = 'voice.webm') => {
     setState('processing');
     setLiveText('');
@@ -131,6 +144,7 @@ export function useVoiceExpense({ onSaved, accountMode = 'personal' } = {}) {
       rec.continuous = true;
       speechRef.current = rec;
       finalTranscriptRef.current = '';
+      latestTranscriptRef.current = '';
 
       rec.onresult = (e) => {
         let interim = '';
@@ -142,23 +156,26 @@ export function useVoiceExpense({ onSaved, accountMode = 'personal' } = {}) {
             interim += part;
           }
         }
-        setLiveText(finalTranscriptRef.current || interim);
+        latestTranscriptRef.current = finalTranscriptRef.current || interim;
+        setLiveText(latestTranscriptRef.current);
       };
 
       rec.onerror = () => {
+        speechRef.current = null;
+        recordingActiveRef.current = false;
         setError('تعذر التعرف على الصوت');
         setState('idle');
         setLiveText('');
       };
 
       rec.onend = () => {
-        setLiveText('');
-        const text = finalTranscriptRef.current.trim();
-        setState('idle');
-        if (text) processTranscription(text);
-        else setError('ما سمعت كلام — جرّب مرة ثانية');
+        if (!speechRef.current) return;
+        speechRef.current = null;
+        const text = (finalTranscriptRef.current || latestTranscriptRef.current).trim();
+        finishSpeechCapture(text);
       };
 
+      recordingActiveRef.current = true;
       rec.start();
       setState('recording');
       return;
@@ -172,12 +189,15 @@ export function useVoiceExpense({ onSaved, accountMode = 'personal' } = {}) {
       chunksRef.current = [];
       mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
       mr.onstop = async () => {
+        recordingActiveRef.current = false;
         stream.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
+        mediaRecorderRef.current = null;
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' });
         const ext = (mr.mimeType || '').includes('mp4') ? 'voice.m4a' : 'voice.webm';
         await processAudioBlob(blob, ext);
       };
+      recordingActiveRef.current = true;
       mr.start();
       setState('recording');
       setLiveText('جاري التسجيل... اضغط إيقاف لما تخلص');
@@ -185,13 +205,26 @@ export function useVoiceExpense({ onSaved, accountMode = 'personal' } = {}) {
       setError('فعّل الميكروفون من إعدادات المتصفح');
       setState('idle');
     }
-  }, [processAudioBlob, processTranscription]);
+  }, [finishSpeechCapture, processAudioBlob]);
 
   const stopAndProcess = useCallback(() => {
-    if (state !== 'recording') return;
-    speechRef.current?.stop();
+    if (!recordingActiveRef.current) return;
+
+    const rec = speechRef.current;
+    if (rec) {
+      speechRef.current = null;
+      try {
+        rec.stop();
+      } catch {
+        // already stopped
+      }
+      const text = (finalTranscriptRef.current || latestTranscriptRef.current).trim();
+      finishSpeechCapture(text);
+      return;
+    }
+
     mediaRecorderRef.current?.stop();
-  }, [state]);
+  }, [finishSpeechCapture]);
 
   const confirmExpense = useCallback(async (edited) => {
     setState('processing');

@@ -74,6 +74,7 @@ const VoiceScreen = ({ user }) => {
   const showSheet = state === 'confirming' && result;
   const saved = result?.saved;
   const isReceiptMode = inputMode === 'receipt';
+  const micButtonDisabled = isProcessing || state === 'done';
 
   useEffect(() => {
     if (state !== 'done') return undefined;
@@ -242,7 +243,7 @@ const VoiceScreen = ({ user }) => {
           type="button"
           className={`mic-btn-large${isRecording ? ' recording' : ''}${state === 'done' ? ' done' : ''}${isProcessing ? ' processing' : ''}${isReceiptMode ? ' receipt' : ''}`}
           onClick={handleMainAction}
-          disabled={isProcessing || state === 'done' || isRecording}
+          disabled={micButtonDisabled}
           aria-label={isReceiptMode ? 'تصوير إيصال' : 'تسجيل صوت'}
         >
           {mainIcon()}
