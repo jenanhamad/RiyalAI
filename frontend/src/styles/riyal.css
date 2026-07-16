@@ -1,57 +1,57 @@
 /* ريالي ryialAI — Nova Design System (fintech premium, RTL) */
 :root {
-  /* ── Neutrals (cool slate) ── */
-  --bg: #F3F5FB;
-  --bg-2: #EDF0F8;
-  --surface: #FFFFFF;
-  --surface-2: #F8FAFF;
-  --border: #E7EBF4;
-  --border-strong: #D8DEEC;
+  /* ── Neutrals (deep slate — dark theme) ── */
+  --bg: #0A0F1E;
+  --bg-2: #06090F;
+  --surface: #131A2C;
+  --surface-2: #1A2338;
+  --border: #273049;
+  --border-strong: #36415F;
   --white: #FFFFFF;
 
-  --ink: #0E1526;
-  --text: #1B2437;
-  --text-muted: #64708A;
-  --text-faint: #97A2B8;
+  --ink: #F4F7FF;
+  --text: #E6EAF5;
+  --text-muted: #94A0BA;
+  --text-faint: #6C7890;
 
   /* ── Personal brand — indigo/violet (energetic) ── */
-  --terracotta: #6C4CF0;
-  --terracotta-tint: #8A6BFF;
-  --terracotta-soft: #6C4CF014;
+  --terracotta: #7C5CFF;
+  --terracotta-tint: #9C82FF;
+  --terracotta-soft: #7C5CFF26;
 
   /* ── Business brand — teal (professional / growth) ── */
-  --navy: #0E9488;
-  --navy-tint: #17B6A6;
-  --navy-soft: #0E948814;
+  --navy: #17B6A6;
+  --navy-tint: #2BD3C0;
+  --navy-soft: #17B6A626;
 
   /* ── Reward / gamification — amber gold ── */
-  --amber-gold: #F4A524;
-  --amber-gold-tint: #FFC24D;
-  --amber-gold-soft: #F4A52418;
+  --amber-gold: #F7B23B;
+  --amber-gold-tint: #FFC85A;
+  --amber-gold-soft: #F7B23B26;
 
   /* ── Money states ── */
-  --mint: #12B981;
-  --mint-tint: #34D9A0;
-  --mint-soft: #12B98114;
+  --mint: #22C88E;
+  --mint-tint: #42E0A6;
+  --mint-soft: #22C88E26;
 
-  --rose: #F5405E;
-  --rose-tint: #FF6B82;
-  --rose-soft: #F5405E14;
+  --rose: #FF5A76;
+  --rose-tint: #FF7F94;
+  --rose-soft: #FF5A7626;
 
   /* ── Mode accent — personal = violet, business = teal ── */
   --mode: var(--terracotta);
   --mode-soft: var(--terracotta-soft);
   --mode-tint: var(--terracotta-tint);
-  --mode-glow: rgba(108, 76, 240, 0.22);
-  --mode-glow-strong: rgba(108, 76, 240, 0.38);
-  --mode-shadow: rgba(108, 76, 240, 0.30);
+  --mode-glow: rgba(124, 92, 255, 0.30);
+  --mode-glow-strong: rgba(124, 92, 255, 0.48);
+  --mode-shadow: rgba(124, 92, 255, 0.40);
 
   /* ── Gamification — always amber gold regardless of mode ── */
   --gamify: var(--amber-gold);
   --gamify-soft: var(--amber-gold-soft);
   --gamify-tint: var(--amber-gold-tint);
-  --gamify-glow: rgba(244, 165, 36, 0.28);
-  --gamify-glow-strong: rgba(244, 165, 36, 0.45);
+  --gamify-glow: rgba(247, 178, 59, 0.32);
+  --gamify-glow-strong: rgba(247, 178, 59, 0.50);
 
   /* ── Semantic states ── */
   --income: var(--mint);
@@ -92,10 +92,10 @@
   --radius-btn: 16px;
   --radius-balance: 26px;
   --radius-pill: 100px;
-  --shadow-card: 0 1px 2px rgba(14, 21, 38, 0.04), 0 6px 16px rgba(14, 21, 38, 0.05);
-  --shadow-md: 0 10px 30px rgba(14, 21, 38, 0.08);
-  --shadow-lg: 0 20px 48px rgba(14, 21, 38, 0.14);
-  --shadow-balance: 0 14px 36px rgba(14, 21, 38, 0.12);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 22px rgba(0, 0, 0, 0.38);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.48);
+  --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.58);
+  --shadow-balance: 0 18px 42px rgba(0, 0, 0, 0.52);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1073,12 +1073,12 @@ body::before {
   max-width: 480px;
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(17, 23, 40, 0.78);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   border-top: 1px solid var(--border);
   border-radius: 24px 24px 0 0;
-  box-shadow: 0 -8px 28px rgba(14, 21, 38, 0.08);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -2020,7 +2020,7 @@ body::before {
   line-height: 1.55;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .story-share-btn {
