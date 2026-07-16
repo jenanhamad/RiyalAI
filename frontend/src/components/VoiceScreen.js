@@ -349,8 +349,8 @@ const VoiceScreen = ({ user }) => {
                 className="expense-item voice-recent-item"
               >
                 <div
-                  className="expense-item-icon"
-                  style={{ borderLeft: `3px solid ${isIncome ? '#22c55e' : cat.color}` }}
+                  className={`expense-item-icon${isIncome ? ' income' : ''}`}
+                  style={!isIncome ? { borderLeft: `3px solid ${cat.color}` } : undefined}
                 >
                   {isIncome ? '↑' : cat.icon}
                 </div>

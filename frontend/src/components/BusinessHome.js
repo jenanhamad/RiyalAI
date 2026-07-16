@@ -194,7 +194,10 @@ const BusinessHome = ({ user, onSignOut }) => {
           const isIncome = exp.entryType === 'income';
           return (
             <Link key={exp.expenseId} to={`/expense/${exp.expenseId}`} className="expense-item">
-              <div className="expense-item-icon" style={{ borderLeft: `3px solid ${isIncome ? '#22c55e' : cat.color}` }}>
+              <div
+                className={`expense-item-icon${isIncome ? ' income' : ''}`}
+                style={!isIncome ? { borderLeft: `3px solid ${cat.color}` } : undefined}
+              >
                 {isIncome ? '↑' : cat.icon}
               </div>
               <div className="expense-item-body">

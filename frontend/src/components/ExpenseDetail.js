@@ -87,8 +87,8 @@ const ExpenseDetail = () => {
 
       <button
         type="button"
-        className="btn-ghost"
-        style={{ marginTop: 8, color: '#FCA5A5', borderColor: 'rgba(239,68,68,0.4)' }}
+        className="btn-ghost btn-danger"
+        style={{ marginTop: 8 }}
         onClick={handleDelete}
       >
         حذف المصروف
