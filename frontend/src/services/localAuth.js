@@ -13,12 +13,22 @@ export function getLocalUser() {
   return raw ? JSON.parse(raw) : null;
 }
 
-export function setLocalSession({ token, username, displayName, userId, email }) {
+export function setLocalSession({ token, username, displayName, userId, email, activeMode }) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify({
     username: username || displayName,
     userId,
     email: email || null,
+    activeMode: activeMode === 'business' ? 'business' : 'personal',
+  }));
+}
+
+export function updateLocalUserMode(activeMode) {
+  const user = getLocalUser();
+  if (!user) return;
+  localStorage.setItem(USER_KEY, JSON.stringify({
+    ...user,
+    activeMode: activeMode === 'business' ? 'business' : 'personal',
   }));
 }
 
@@ -27,11 +37,16 @@ export function clearLocalSession() {
   localStorage.removeItem(USER_KEY);
 }
 
-export async function localRegister(username, password, email = '') {
+export async function localRegister(username, password, email = '', accountMode = 'personal') {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, email: email.trim() }),
+    body: JSON.stringify({
+      username,
+      password,
+      email: email.trim(),
+      accountMode: accountMode === 'business' ? 'business' : 'personal',
+    }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || data.error || 'فشل إنشاء الحساب');

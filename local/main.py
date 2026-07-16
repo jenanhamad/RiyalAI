@@ -28,6 +28,8 @@ import auth
 import voice_service as voice
 import seed_sample_data as seed_demo
 import friends as social
+import business as biz
+import story as weekly_story
 
 import openrouter as orouter
 
@@ -76,11 +78,16 @@ class RegisterBody(BaseModel):
     username: str
     password: str
     email: str | None = None
+    accountMode: str = "personal"
 
 
 class LoginBody(BaseModel):
     username: str
     password: str
+
+
+class ModeBody(BaseModel):
+    mode: str
 
 
 class ExpenseBody(BaseModel):
@@ -93,6 +100,17 @@ class ExpenseBody(BaseModel):
     notes: str = ""
     hasReceipt: bool = False
     receiptKey: str | None = None
+    mode: str | None = None
+    entryType: str = "expense"
+    projectTag: str = ""
+
+
+def _row_get(row, key, default=None):
+    try:
+        val = row[key]
+        return default if val is None else val
+    except (KeyError, IndexError):
+        return default
 
 
 def _expense_row_to_api(row) -> dict:
@@ -110,6 +128,9 @@ def _expense_row_to_api(row) -> dict:
         "hasReceipt": bool(row["has_receipt"]),
         "isRecurring": bool(row["is_recurring"]),
         "receiptKey": row["receipt_key"],
+        "mode": _row_get(row, "mode", "personal") or "personal",
+        "entryType": _row_get(row, "entry_type", "expense") or "expense",
+        "projectTag": _row_get(row, "project_tag", "") or "",
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
     }
@@ -145,7 +166,9 @@ def admin_seed_demo(
 @app.post("/auth/register")
 def register(body: RegisterBody):
     try:
-        return auth.register_user(body.username, body.password, body.email)
+        return auth.register_user(
+            body.username, body.password, body.email, account_mode=body.accountMode
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -163,6 +186,88 @@ def profile(user_id: str = Depends(get_user_id)):
     return gam.profile_response(user_id)
 
 
+@app.patch("/profile/mode")
+def switch_mode(body: ModeBody, user_id: str = Depends(get_user_id)):
+    try:
+        mode = biz.set_active_mode(user_id, body.mode)
+        return {"activeMode": mode, "message": "تم تبديل الوضع"}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/business/dashboard")
+def business_dashboard(user_id: str = Depends(get_user_id)):
+    return biz.dashboard(user_id)
+
+
+@app.get("/business/vat")
+def business_vat(user_id: str = Depends(get_user_id)):
+    return biz.vat_summary(user_id)
+
+
+@app.get("/business/leaks")
+def business_leaks(user_id: str = Depends(get_user_id)):
+    rule_leaks = biz.rule_based_leaks(user_id)
+    try:
+        summary = biz.build_business_summary_for_ai(user_id)
+        ai = orouter.detect_business_leaks(summary)
+        ai_leaks = ai.get("leaks") or []
+        if ai_leaks:
+            return {"leaks": ai_leaks, "source": "ai"}
+    except Exception:
+        pass
+    return {"leaks": rule_leaks, "source": "rules"}
+
+
+@app.get("/business/categories")
+def business_categories():
+    return {
+        "categories": [
+            {"id": "Marketing", "labelAr": "تسويق"},
+            {"id": "Salaries", "labelAr": "رواتب"},
+            {"id": "Inventory", "labelAr": "مخزون"},
+            {"id": "Rent", "labelAr": "إيجار"},
+            {"id": "Tax", "labelAr": "ضريبة"},
+            {"id": "Equipment", "labelAr": "معدات"},
+            {"id": "Commissions", "labelAr": "عمولات"},
+            {"id": "Utilities", "labelAr": "فواتير"},
+            {"id": "Transportation", "labelAr": "مواصلات"},
+            {"id": "Other", "labelAr": "أخرى"},
+        ]
+    }
+
+
+@app.get("/business/glance")
+def business_glance(user_id: str = Depends(get_user_id)):
+    """Your business at a glance — analytical snapshot."""
+    ai_insight = None
+    try:
+        summary = biz.glance_summary_for_ai(user_id)
+        ai_insight = orouter.generate_business_glance_insight(summary)
+        if isinstance(ai_insight, dict):
+            ai_insight["source"] = "ai"
+    except Exception:
+        ai_insight = None
+    return biz.business_glance(user_id, ai_insight=ai_insight)
+
+
+@app.get("/story/weekly")
+def personal_weekly_story(user_id: str = Depends(get_user_id)):
+    """Personal weekly story — AI narrative + week stats."""
+    stats = weekly_story.build_week_stats(user_id)
+    ai_story = None
+    try:
+        summary = weekly_story.summary_text_for_ai(stats)
+        ai_story = orouter.generate_weekly_story(summary)
+        if isinstance(ai_story, dict):
+            ai_story["source"] = "ai"
+            if not ai_story.get("sentences"):
+                ai_story = None
+    except Exception:
+        ai_story = None
+    return weekly_story.get_weekly_story(user_id, ai_story=ai_story)
+
+
 @app.get("/challenges")
 def challenges(user_id: str = Depends(get_user_id)):
     return {"challenges": gam.list_challenges(user_id)}
@@ -170,6 +275,8 @@ def challenges(user_id: str = Depends(get_user_id)):
 
 @app.post("/challenges/generate")
 def generate_challenges(user_id: str = Depends(get_user_id)):
+    if biz.get_active_mode(user_id) == "business":
+        raise HTTPException(400, "التحديات متاحة في وضع الأفراد فقط")
     try:
         summary = gam.build_expense_summary_for_ai(user_id)
         ai_result = orouter.generate_weekly_challenges(summary)
@@ -259,48 +366,75 @@ def leaderboard(user_id: str = Depends(get_user_id)):
 
 
 @app.get("/expenses")
-def list_expenses(user_id: str = Depends(get_user_id)):
+def list_expenses(user_id: str = Depends(get_user_id), mode: str | None = None):
+    active = mode if mode in ("personal", "business") else biz.get_active_mode(user_id)
     conn = get_connection()
     rows = conn.execute(
-        "SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC",
-        (user_id,),
+        "SELECT * FROM expenses WHERE user_id = ? AND mode = ? ORDER BY date DESC",
+        (user_id, active),
     ).fetchall()
     conn.close()
     items = [_expense_row_to_api(r) for r in rows]
-    return {"expenses": items, "count": len(items)}
+    return {"expenses": items, "count": len(items), "mode": active}
 
 
 def _create_expense_for_user(body: ExpenseBody, user_id: str, *, voice_bonus: bool = False):
     if not body.merchant or body.amount <= 0:
         raise HTTPException(400, "Merchant and positive amount are required")
 
+    mode = body.mode if body.mode in ("personal", "business") else biz.get_active_mode(user_id)
+    entry_type = body.entryType if body.entryType in ("expense", "income") else "expense"
+    category = body.category
+    if mode == "business":
+        category = biz.normalize_business_category(category)
+    else:
+        category = voice.normalize_category(category)
+
     expense_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat()
     expense_date = body.date or datetime.utcnow().strftime("%Y-%m-%d")
+    project_tag = (body.projectTag or "").strip()[:80]
     conn = get_connection()
     conn.execute(
         """INSERT INTO expenses (expense_id, user_id, merchant, amount, date, category,
            payment_method, description, notes, status, has_receipt, is_recurring,
-           receipt_key, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'processed', ?, 0, ?, ?, ?)""",
+           receipt_key, mode, entry_type, project_tag, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'processed', ?, 0, ?, ?, ?, ?, ?, ?)""",
         (
-            expense_id, user_id, body.merchant, body.amount, expense_date, body.category,
+            expense_id, user_id, body.merchant, body.amount, expense_date, category,
             body.paymentMethod, body.description, body.notes, int(body.hasReceipt),
-            body.receiptKey, now, now,
+            body.receiptKey, mode, entry_type, project_tag, now, now,
         ),
     )
     conn.commit()
     row = conn.execute("SELECT * FROM expenses WHERE expense_id = ?", (expense_id,)).fetchone()
     conn.close()
 
-    gamification_result = gam.award_xp_for_expense(user_id, expense_date, voice_bonus=voice_bonus)
-    gam.check_and_complete_challenges(user_id)
+    # Gamification only for personal expenses (not business / income)
+    gamification_result = None
+    if mode == "personal" and entry_type == "expense":
+        gamification_result = gam.award_xp_for_expense(
+            user_id, expense_date, voice_bonus=voice_bonus
+        )
+        gam.check_and_complete_challenges(user_id)
+
+    personal_suggestion = None
+    if mode == "business" and entry_type == "expense":
+        personal_suggestion = biz.detect_personal_suggestion(
+            merchant=body.merchant,
+            note=body.description or body.notes,
+            transcription=body.notes,
+            category=category,
+            entry_type=entry_type,
+        )
 
     return {
         "message": "Expense created successfully",
         "expenseId": expense_id,
         "expense": _expense_row_to_api(row),
         "gamification": gamification_result,
+        "suggestPersonal": bool(personal_suggestion),
+        "personalSuggestion": personal_suggestion,
     }
 
 
@@ -323,33 +457,42 @@ def recurring(user_id: str = Depends(get_user_id)):
 
 
 @app.get("/expenses/analytics")
-def analytics(user_id: str = Depends(get_user_id)):
+def analytics(user_id: str = Depends(get_user_id), mode: str | None = None):
+    active = mode if mode in ("personal", "business") else biz.get_active_mode(user_id)
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM expenses WHERE user_id = ?", (user_id,)).fetchall()
+    rows = conn.execute(
+        "SELECT * FROM expenses WHERE user_id = ? AND mode = ?",
+        (user_id, active),
+    ).fetchall()
     conn.close()
-    if not rows:
+    expense_rows = [
+        r for r in rows if (_row_get(r, "entry_type", "expense") or "expense") != "income"
+    ]
+    if not expense_rows:
         return {
             "totalExpenses": 0,
             "categoryBreakdown": {},
             "monthlyTrend": {},
             "recurringTotal": 0,
             "expenseCount": 0,
+            "mode": active,
         }
-    total = sum(float(r["amount"]) for r in rows)
+    total = sum(float(r["amount"]) for r in expense_rows)
     categories = {}
     monthly_trend = {}
-    for r in rows:
+    for r in expense_rows:
         cat = r["category"]
         categories[cat] = categories.get(cat, 0) + float(r["amount"])
         mk = r["date"][:7]
         monthly_trend[mk] = monthly_trend.get(mk, 0) + float(r["amount"])
-    recurring_total = sum(float(r["amount"]) for r in rows if r["is_recurring"])
+    recurring_total = sum(float(r["amount"]) for r in expense_rows if r["is_recurring"])
     return {
         "totalExpenses": total,
         "categoryBreakdown": categories,
         "monthlyTrend": monthly_trend,
         "recurringTotal": recurring_total,
-        "expenseCount": len(rows),
+        "expenseCount": len(expense_rows),
+        "mode": active,
     }
 
 
@@ -380,6 +523,7 @@ def update_expense(expense_id: str, body: dict, user_id: str = Depends(get_user_
         "merchant": "merchant", "amount": "amount", "category": "category",
         "paymentMethod": "payment_method", "description": "description",
         "notes": "notes", "date": "date", "receiptKey": "receipt_key", "hasReceipt": "has_receipt",
+        "entryType": "entry_type", "projectTag": "project_tag", "mode": "mode",
     }
     updates = []
     values = []
@@ -502,6 +646,9 @@ class VoiceConfirmRequest(BaseModel):
     note: str | None = None
     transcription: str
     source: str = "voice"
+    entryType: str = "expense"
+    projectTag: str | None = None
+    mode: str | None = None
 
 
 def _voice_service_error(exc: Exception) -> HTTPException:
@@ -519,10 +666,12 @@ def _voice_service_error(exc: Exception) -> HTTPException:
 async def voice_process(
     audio_file: UploadFile | None = File(None),
     transcription: str | None = Form(None),
+    mode: str | None = Form(None),
     user_id: str = Depends(get_user_id),
 ):
     """Transcribe + extract — does NOT save expense."""
     _check_voice_rate_limit(user_id)
+    active = mode if mode in ("personal", "business") else biz.get_active_mode(user_id)
     text = (transcription or "").strip()
 
     if not text:
@@ -544,7 +693,7 @@ async def voice_process(
         raise HTTPException(400, "Could not transcribe audio")
 
     try:
-        extracted = await asyncio.to_thread(voice.extract_expense, text)
+        extracted = await asyncio.to_thread(voice.extract_expense, text, active)
     except Exception as e:
         _log_voice(user_id, text, None, None, None, "failed")
         raise _voice_service_error(e) from e
@@ -560,6 +709,9 @@ async def voice_process(
         "category": extracted["category"],
         "note": extracted.get("note"),
         "confidence": extracted["confidence"],
+        "entryType": extracted.get("entry_type", "expense"),
+        "projectTag": extracted.get("project_tag"),
+        "mode": active,
         "xp_awarded": 0,
     }
 
@@ -567,16 +719,20 @@ async def voice_process(
 @app.post("/receipt/process")
 async def receipt_process(
     image_file: UploadFile = File(...),
+    mode: str | None = Form(None),
     user_id: str = Depends(get_user_id),
 ):
     """Extract expense from receipt image — does NOT save."""
     _check_voice_rate_limit(user_id)
+    active = mode if mode in ("personal", "business") else biz.get_active_mode(user_id)
     image_bytes = await image_file.read()
     if not image_bytes:
         raise HTTPException(400, "Empty image file")
     filename = image_file.filename or "receipt.jpg"
     try:
-        extracted = await asyncio.to_thread(voice.extract_receipt_image, image_bytes, filename)
+        extracted = await asyncio.to_thread(
+            voice.extract_receipt_image, image_bytes, filename, active
+        )
     except Exception as e:
         _log_voice(user_id, "receipt", None, None, None, "failed")
         raise _voice_service_error(e) from e
@@ -591,6 +747,9 @@ async def receipt_process(
         "category": extracted["category"],
         "note": extracted.get("note"),
         "confidence": extracted["confidence"],
+        "entryType": extracted.get("entry_type", "expense"),
+        "projectTag": extracted.get("project_tag"),
+        "mode": active,
         "source": "receipt",
         "xp_awarded": 0,
     }
@@ -605,8 +764,17 @@ def voice_confirm(body: VoiceConfirmRequest, user_id: str = Depends(get_user_id)
             "transcription": body.transcription,
         })
 
-    category = voice.normalize_category(body.category)
-    merchant = (body.note or ("إيصال" if body.source == "receipt" else "مصروف صوتي"))[:100]
+    mode = body.mode if body.mode in ("personal", "business") else biz.get_active_mode(user_id)
+    entry_type = body.entryType if body.entryType in ("expense", "income") else "expense"
+    if mode == "business":
+        category = biz.normalize_business_category(body.category)
+    else:
+        category = voice.normalize_category(body.category)
+
+    default_label = "إيصال" if body.source == "receipt" else (
+        "إيراد صوتي" if entry_type == "income" else "مصروف صوتي"
+    )
+    merchant = (body.note or default_label)[:100]
     source_label = "إيصال" if body.source == "receipt" else "صوت"
     expense_body = ExpenseBody(
         merchant=merchant,
@@ -616,24 +784,66 @@ def voice_confirm(body: VoiceConfirmRequest, user_id: str = Depends(get_user_id)
         notes=f"{source_label}: {body.transcription[:200]}",
         paymentMethod="Digital Wallet",
         hasReceipt=body.source == "receipt",
+        mode=mode,
+        entryType=entry_type,
+        projectTag=body.projectTag or "",
     )
     result = _create_expense_for_user(expense_body, user_id, voice_bonus=True)
-    xp = result["gamification"]["xpEarned"]
+    xp = (result.get("gamification") or {}).get("xpEarned", 0)
     _log_voice(
         user_id, body.transcription, body.amount, category, None, "confirmed",
     )
+    # Prefer transcription for personal detection (e.g. "قهوة")
+    personal_suggestion = None
+    if mode == "business" and entry_type == "expense":
+        personal_suggestion = biz.detect_personal_suggestion(
+            merchant=merchant,
+            note=body.note or "",
+            transcription=body.transcription or "",
+            category=category,
+            entry_type=entry_type,
+        ) or result.get("personalSuggestion")
+
+    if mode == "business":
+        kind = "إيراد" if entry_type == "income" else "مصروف"
+        msg = f"تم تسجيل {kind} {body.amount} ريال"
+    else:
+        msg = f"تم تسجيل {body.amount} ريال — +{xp} XP"
     return {
         "transcription": body.transcription,
         "amount": body.amount,
         "category": category,
         "note": body.note,
         "confidence": 1.0,
+        "entryType": entry_type,
+        "projectTag": body.projectTag,
+        "mode": mode,
         "xp_awarded": xp,
         "expenseId": result["expenseId"],
         "expense": result["expense"],
         "gamification": result["gamification"],
-        "messageAr": f"تم تسجيل {body.amount} ريال — +{xp} XP",
+        "messageAr": msg,
+        "suggestPersonal": bool(personal_suggestion),
+        "personalSuggestion": personal_suggestion,
     }
+
+
+@app.post("/expenses/{expense_id}/convert-personal")
+def convert_to_personal(expense_id: str, user_id: str = Depends(get_user_id)):
+    """Move a business expense into personal mode (e.g. coffee logged by mistake)."""
+    try:
+        return biz.convert_expense_to_personal(expense_id, user_id)
+    except ValueError as e:
+        code = str(e)
+        if code == "not_found":
+            raise HTTPException(404, "المصروف غير موجود")
+        if code == "forbidden":
+            raise HTTPException(403, "غير مسموح")
+        if code == "already_personal":
+            raise HTTPException(400, "المصروف أصلاً في وضع الأفراد")
+        if code == "income_not_allowed":
+            raise HTTPException(400, "لا يمكن تحويل الإيراد لمصروف شخصي")
+        raise HTTPException(400, code)
 
 
 class VoiceBody(BaseModel):
@@ -659,6 +869,7 @@ if SERVE_FRONTEND:
     _API_PREFIXES = (
         "auth", "expenses", "profile", "challenges", "leaderboard",
         "voice", "upload", "uploads", "docs", "openapi.json", "redoc",
+        "business", "friends", "users", "admin", "receipt", "story",
     )
 
     @app.get("/{full_path:path}")

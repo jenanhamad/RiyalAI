@@ -30,9 +30,10 @@ async function authHeaders() {
 export const api = {
   healthCheck: () => axios.get(`${API_BASE}/expenses/health`),
 
-  getExpenses: async () => {
+  getExpenses: async (mode) => {
     const headers = await authHeaders();
-    return axios.get(`${API_BASE}/expenses`, { headers });
+    const params = mode ? { mode } : undefined;
+    return axios.get(`${API_BASE}/expenses`, { headers, params });
   },
 
   createExpense: async (data) => {
@@ -55,6 +56,11 @@ export const api = {
     return axios.delete(`${API_BASE}/expenses/${expenseId}`, { headers });
   },
 
+  convertToPersonal: async (expenseId) => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/expenses/${expenseId}/convert-personal`, {}, { headers });
+  },
+
   getRecurringExpenses: async () => {
     const headers = await authHeaders();
     return axios.get(`${API_BASE}/expenses/recurring`, { headers });
@@ -65,9 +71,10 @@ export const api = {
     return axios.post(`${API_BASE}/expenses/${expenseId}/recurring`, {}, { headers });
   },
 
-  getAnalytics: async () => {
+  getAnalytics: async (mode) => {
     const headers = await authHeaders();
-    return axios.get(`${API_BASE}/expenses/analytics`, { headers });
+    const params = mode ? { mode } : undefined;
+    return axios.get(`${API_BASE}/expenses/analytics`, { headers, params });
   },
 
   getUploadUrl: async (expenseId, filename, contentType) => {
@@ -82,6 +89,36 @@ export const api = {
   getProfile: async () => {
     const headers = await authHeaders();
     return axios.get(`${API_BASE}/profile`, { headers });
+  },
+
+  setActiveMode: async (mode) => {
+    const headers = await authHeaders();
+    return axios.patch(`${API_BASE}/profile/mode`, { mode }, { headers });
+  },
+
+  getBusinessDashboard: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/business/dashboard`, { headers });
+  },
+
+  getBusinessVat: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/business/vat`, { headers });
+  },
+
+  getBusinessLeaks: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/business/leaks`, { headers });
+  },
+
+  getBusinessGlance: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/business/glance`, { headers, timeout: 60000 });
+  },
+
+  getWeeklyStory: async () => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/story/weekly`, { headers, timeout: 60000 });
   },
 
   getChallenges: async () => {
@@ -145,17 +182,17 @@ export const api = {
   },
 
   /** Process voice — transcribe + extract, does NOT save */
-  voiceProcess: async ({ audioBlob, filename = 'voice.webm', transcription }) => {
+  voiceProcess: async ({ audioBlob, filename = 'voice.webm', transcription, mode }) => {
     const headers = await authHeaders();
+    const form = new FormData();
+    if (mode) form.append('mode', mode);
     if (transcription) {
-      const form = new FormData();
       form.append('transcription', transcription);
       return axios.post(`${API_BASE}/voice/process`, form, {
         headers: { ...headers, 'Content-Type': 'multipart/form-data' },
         timeout: 90000,
       });
     }
-    const form = new FormData();
     form.append('audio_file', audioBlob, filename);
     return axios.post(`${API_BASE}/voice/process`, form, {
       headers: { ...headers, 'Content-Type': 'multipart/form-data' },
@@ -164,10 +201,11 @@ export const api = {
   },
 
   /** Process receipt image — extract expense, does NOT save */
-  receiptProcess: async (file) => {
+  receiptProcess: async (file, mode) => {
     const headers = await authHeaders();
     const form = new FormData();
     form.append('image_file', file, file.name || 'receipt.jpg');
+    if (mode) form.append('mode', mode);
     return axios.post(`${API_BASE}/receipt/process`, form, {
       headers: { ...headers, 'Content-Type': 'multipart/form-data' },
       timeout: 90000,

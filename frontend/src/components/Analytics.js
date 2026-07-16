@@ -3,8 +3,11 @@ import { api } from '../services/api';
 import { formatRiyal } from '../utils/format';
 import { getCategoryMeta } from '../utils/categories';
 import ProgressRing from './ui/ProgressRing';
+import { useMode } from '../context/ModeContext';
+import ModeSwitcher from './ModeSwitcher';
 
 const Analytics = () => {
+  const { mode } = useMode();
   const [analytics, setAnalytics] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,19 +15,20 @@ const Analytics = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      api.getAnalytics().catch((err) => {
+      api.getAnalytics(mode).catch((err) => {
         setError(err.response?.data?.error || err.message);
         return { data: { totalExpenses: 0, categoryBreakdown: {}, expenseCount: 0 } };
       }),
-      api.getExpenses(),
+      api.getExpenses(mode),
     ])
       .then(([aRes, eRes]) => {
         setAnalytics(aRes.data);
         setExpenses(eRes.data.expenses || []);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [mode]);
 
   if (loading) {
     return (
@@ -58,13 +62,14 @@ const Analytics = () => {
 
   const topCat = entries[0];
   const insight = topCat
-    ? `أكثر إنفاقك على ${getCategoryMeta(topCat[0]).labelAr} — ${Math.round((topCat[1] / total) * 100)}% من مصروفاتك. حاول توزّع ميزانيتك أكثر هذا الأسبوع.`
+    ? `أكثر إنفاقك على ${getCategoryMeta(topCat[0], mode).labelAr} — ${Math.round((topCat[1] / total) * 100)}% من مصروفاتك.`
     : 'ابدأ بتسجيل مصروفاتك عشان تشوف تحليلات ذكية هنا.';
 
   return (
     <div className="page">
       <h1 className="page-title">التحليلات</h1>
-      <p className="page-subtitle">Analytics</p>
+      <p className="page-subtitle">{mode === 'business' ? 'تحليل أعمال' : 'Analytics'}</p>
+      <ModeSwitcher compact />
       {error && <div className="error-banner">{error}</div>}
 
       <div className="quick-stats">
@@ -82,7 +87,7 @@ const Analytics = () => {
       <div className="ring-chart-row glass-card" style={{ padding: 20 }}>
         {entries.slice(0, 4).map(([cat, amt]) => {
           const pct = Math.round((amt / total) * 100);
-          const meta = getCategoryMeta(cat);
+          const meta = getCategoryMeta(cat, mode);
           return (
             <div key={cat} className="spend-ring-item">
               <ProgressRing progress={pct} size={64}>

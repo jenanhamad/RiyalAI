@@ -189,3 +189,106 @@ def generate_weekly_challenges(expense_summary_text):
         if raw.startswith("json"):
             raw = raw[4:]
     return json.loads(raw.strip())
+
+
+def extract_business_entry_from_text(transcription):
+    """Extract business income/expense from Saudi Arabic voice."""
+    prompt = f"""أنت مساعد محاسبة لمشروع صغير سعودي. استخرج من الجملة:
+"{transcription}"
+
+أرجع JSON فقط:
+{{
+  "amount": <رقم>,
+  "entry_type": <"expense" أو "income">,
+  "category": <Marketing, Salaries, Inventory, Rent, Tax, Equipment, Commissions, Utilities, Transportation, Other
+    أو عربي: تسويق، رواتب، مخزون، إيجار، ضريبة، معدات، عمولات، فواتير، مواصلات، أخرى>,
+  "note": <وصف قصير أو اسم العميل/المورد>,
+  "merchant": <اسم التاجر أو العميل إن وُجد>,
+  "project_tag": <اسم مشروع أو عميل إن ذُكر وإلا null>,
+  "confidence": <0.0 إلى 1.0>
+}}
+
+كلمات إيراد/بيع/تحصيل/استلمت = income. كلمات صرفت/اشتريت/دفعت/فاتورة = expense.
+افهم العامية السعودية. إذا المبلغ غير واضح استخدم 0."""
+    raw = chat_completion(
+        [{"role": "user", "content": prompt}],
+        max_tokens=320,
+        temperature=0.1,
+    )
+    raw = raw.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
+
+
+def detect_business_leaks(summary_text):
+    """AI leak detector for small business spending."""
+    prompt = (
+        "أنت مستشار تشغيلي لمشاريع صغيرة في السعودية. حلّل:\n\n"
+        f"{summary_text}\n\n"
+        "اكتشف 2 إلى 3 ثقوب إنفاق تشغيلية. بدون ألعاب أو XP. "
+        "أرجع JSON فقط: {\"leaks\": [{\"title\", \"amount\", \"suggestion\", \"severity\", \"category\"}]} "
+        "severity واحد من: low, medium, high. suggestion باللهجة السعودية العملية."
+    )
+    raw = chat_completion(
+        [{"role": "user", "content": prompt}],
+        max_tokens=900,
+        temperature=0.4,
+    )
+    raw = raw.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
+
+
+def generate_weekly_story(summary_text):
+    """Personal weekly story in Saudi dialect — shareable."""
+    prompt = (
+        "أنت كاتب قصص مالية لتطبيق ريالي. اكتب قصة أسبوع قصيرة باللهجة السعودية "
+        "من بيانات المصروفات التالية (وضع أفراد):\n\n"
+        f"{summary_text}\n\n"
+        "أرجع JSON فقط:\n"
+        '{"title": "عنوان جذاب قصير", "sentences": ["جملة1", "جملة2", "جملة3", "جملة4"], '
+        '"mood": "up|steady|down|calm", "shareCaption": "سطر واحد للمشاركة"}\n'
+        "4 إلى 5 جمل قصيرة، ودّية، بدون نصائح طويلة. استخدم أرقام الريال من البيانات فقط."
+    )
+    raw = chat_completion(
+        [{"role": "user", "content": prompt}],
+        max_tokens=700,
+        temperature=0.55,
+    )
+    raw = raw.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
+
+
+def generate_business_glance_insight(summary_text):
+    """One sharp business insight for the glance screen."""
+    prompt = (
+        "أنت مستشار مشاريع صغيرة سعودي. من الملخص التالي أعطِ نظرة سريعة:\n\n"
+        f"{summary_text}\n\n"
+        "أرجع JSON فقط:\n"
+        '{"headline": "عنوان إنجليزي قصير مثل Your week at a glance", '
+        '"headlineAr": "عنوان عربي قصير", '
+        '"insightAr": "جملة أو جملتين عمليتين باللهجة", '
+        '"focus": "ماذا يراقب هذا الأسبوع", '
+        '"tone": "positive|caution|neutral"}'
+    )
+    raw = chat_completion(
+        [{"role": "user", "content": prompt}],
+        max_tokens=500,
+        temperature=0.4,
+    )
+    raw = raw.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())

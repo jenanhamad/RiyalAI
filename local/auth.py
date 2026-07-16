@@ -60,11 +60,25 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
-def register_user(username: str, password: str, email: str | None = None) -> dict:
+def _row_mode(row) -> str:
+    try:
+        mode = row["active_mode"]
+    except (KeyError, IndexError):
+        mode = "personal"
+    return mode if mode in ("personal", "business") else "personal"
+
+
+def register_user(
+    username: str,
+    password: str,
+    email: str | None = None,
+    account_mode: str = "personal",
+) -> dict:
     username = validate_username(username)
     if len(password) < 6:
         raise ValueError("كلمة المرور 6 أحرف على الأقل")
 
+    mode = account_mode if account_mode in ("personal", "business") else "personal"
     normalized_email = normalize_email(email)
 
     conn = get_connection()
@@ -91,9 +105,9 @@ def register_user(username: str, password: str, email: str | None = None) -> dic
     stored_email = normalized_email or f"{user_id}@local.riyalai"
     conn.execute(
         """INSERT INTO users (user_id, username, email, password_hash, display_name, xp, level, streak,
-           weekly_xp, week_start, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, 0, 1, 0, 0, ?, ?, ?)""",
-        (user_id, username, stored_email, hash_password(password), username, week_start, now, now),
+           weekly_xp, week_start, active_mode, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 0, 1, 0, 0, ?, ?, ?, ?)""",
+        (user_id, username, stored_email, hash_password(password), username, week_start, mode, now, now),
     )
     conn.commit()
     conn.close()
@@ -104,6 +118,7 @@ def register_user(username: str, password: str, email: str | None = None) -> dic
         "username": username,
         "displayName": username,
         "email": normalized_email,
+        "activeMode": mode,
     }
 
 
@@ -124,4 +139,5 @@ def login_user(username: str, password: str) -> dict:
         "userId": row["user_id"],
         "username": row["username"],
         "displayName": display,
+        "activeMode": _row_mode(row),
     }

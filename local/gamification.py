@@ -41,8 +41,8 @@ def get_or_create_profile(user_id, email=None):
     fallback_username = f"user_{user_id[:8]}"
     conn.execute(
         """INSERT INTO users (user_id, username, email, password_hash, display_name, xp, level, streak,
-           weekly_xp, week_start, created_at, updated_at)
-           VALUES (?, ?, ?, '', ?, 0, 1, 0, 0, ?, ?, ?)""",
+           weekly_xp, week_start, active_mode, created_at, updated_at)
+           VALUES (?, ?, ?, '', ?, 0, 1, 0, 0, ?, 'personal', ?, ?)""",
         (user_id, fallback_username, f"{user_id}@local.riyalai", fallback_username, _week_start(), now, now),
     )
     conn.commit()
@@ -152,8 +152,12 @@ def build_streak_week_display(user_id):
 def profile_response(user_id):
     profile = get_or_create_profile(user_id)
     xp = int(profile.get("xp") or 0)
+    mode = profile.get("active_mode") or "personal"
+    if mode not in ("personal", "business"):
+        mode = "personal"
     return {
         "userId": user_id,
+        "activeMode": mode,
         "xp": xp,
         "level": int(profile.get("level") or _level_from_xp(xp)),
         "xpProgress": _xp_progress(xp),
@@ -355,7 +359,10 @@ def build_expense_summary_for_ai(user_id):
     cutoff = (date.today() - timedelta(days=30)).isoformat()
     conn = get_connection()
     rows = conn.execute(
-        "SELECT * FROM expenses WHERE user_id = ? AND date >= ?",
+        """SELECT * FROM expenses
+           WHERE user_id = ? AND date >= ?
+             AND COALESCE(mode, 'personal') = 'personal'
+             AND COALESCE(entry_type, 'expense') = 'expense'""",
         (user_id, cutoff),
     ).fetchall()
     conn.close()

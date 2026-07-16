@@ -47,20 +47,30 @@ const ExpenseDetail = () => {
     );
   }
 
-  const cat = getCategoryMeta(expense.category);
+  const isIncome = expense.entryType === 'income';
+  const cat = getCategoryMeta(expense.category, expense.mode || 'personal');
 
   return (
     <div className="page">
-      <Link to="/" className="text-secondary" style={{ fontSize: '0.85rem', textDecoration: 'none' }}>← رجوع</Link>
+      <Link to="/home" className="text-secondary" style={{ fontSize: '0.85rem', textDecoration: 'none' }}>← رجوع</Link>
 
       <div className="glass-card xp-hero" style={{ marginTop: 16, textAlign: 'center' }}>
-        <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>{cat.icon}</div>
+        <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>{isIncome ? '↑' : cat.icon}</div>
         <h1 className="page-title" style={{ fontSize: '1.25rem' }}>{expense.merchant}</h1>
-        <p className="font-mono" style={{ fontSize: '2rem', marginTop: 12 }}>{formatRiyal(expense.amount)}</p>
-        <p className="text-secondary" style={{ marginTop: 8 }}>{cat.labelAr} · {expense.date}</p>
+        <p className="font-mono" style={{ fontSize: '2rem', marginTop: 12 }}>
+          {isIncome ? '+' : ''}{formatRiyal(expense.amount)}
+        </p>
+        <p className="text-secondary" style={{ marginTop: 8 }}>
+          {isIncome ? 'إيراد' : cat.labelAr}
+          {expense.mode === 'business' ? ' · أعمال' : ''}
+          {' · '}{expense.date}
+        </p>
       </div>
 
       <div className="glass-card" style={{ padding: 16, marginTop: 12 }}>
+        {expense.projectTag && (
+          <p style={{ marginBottom: 12 }}><span className="text-muted">المشروع: </span>{expense.projectTag}</p>
+        )}
         {expense.description && (
           <p style={{ marginBottom: 12 }}><span className="text-muted">الوصف: </span>{expense.description}</p>
         )}

@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 import openrouter
+import business as biz
 
 VOICE_DAILY_LIMIT = 30
 
@@ -79,18 +80,30 @@ def transcribe_audio(audio_bytes: bytes, filename: str = "voice.webm") -> str:
     return text.strip()
 
 
-def extract_expense(transcription: str) -> dict[str, Any]:
+def extract_expense(transcription: str, mode: str = "personal") -> dict[str, Any]:
+    if mode == "business":
+        raw = openrouter.extract_business_entry_from_text(transcription)
+        return _normalize_business_extracted(raw, transcription)
     raw = openrouter.extract_expense_from_text(transcription)
     return _normalize_extracted(raw, transcription)
 
 
-def extract_receipt_image(image_bytes: bytes, filename: str = "receipt.jpg") -> dict[str, Any]:
+def extract_receipt_image(
+    image_bytes: bytes, filename: str = "receipt.jpg", mode: str = "personal"
+) -> dict[str, Any]:
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
     mime = _MIME_BY_EXT.get(ext, "image/jpeg")
     b64 = base64.b64encode(image_bytes).decode("ascii")
     raw = openrouter.extract_expense_from_receipt_image(b64, mime)
     merchant = (raw.get("merchant") or raw.get("note") or "إيصال").strip()
     label = f"إيصال: {merchant}"
+    if mode == "business":
+        # Receipts are expenses; map category into business taxonomy when possible
+        normalized = _normalize_extracted(raw, label)
+        normalized["category"] = biz.normalize_business_category(normalized["category"])
+        normalized["entry_type"] = "expense"
+        normalized["project_tag"] = None
+        return normalized
     return _normalize_extracted(raw, label)
 
 
@@ -108,4 +121,31 @@ def _normalize_extracted(data: dict[str, Any], transcription: str) -> dict[str, 
         "category": category,
         "note": note,
         "confidence": confidence,
+        "entry_type": "expense",
+        "project_tag": None,
+    }
+
+
+def _normalize_business_extracted(data: dict[str, Any], transcription: str) -> dict[str, Any]:
+    amount = float(data.get("amount", 0) or 0)
+    entry_type = str(data.get("entry_type") or "expense").lower()
+    if entry_type not in ("expense", "income"):
+        entry_type = "expense"
+    category = biz.normalize_business_category(str(data.get("category", "أخرى")))
+    note = data.get("note") or data.get("merchant")
+    if note is not None:
+        note = str(note).strip() or None
+    project_tag = data.get("project_tag")
+    if project_tag is not None:
+        project_tag = str(project_tag).strip() or None
+    confidence = float(data.get("confidence", 0.85 if amount > 0 else 0.4))
+    confidence = max(0.0, min(1.0, confidence))
+    return {
+        "transcription": transcription,
+        "amount": amount,
+        "category": category,
+        "note": note,
+        "confidence": confidence,
+        "entry_type": entry_type,
+        "project_tag": project_tag,
     }

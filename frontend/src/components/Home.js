@@ -4,8 +4,11 @@ import { api } from '../services/api';
 import { formatRiyal, formatXp, getGreeting } from '../utils/format';
 import { getCategoryMeta } from '../utils/categories';
 import ProgressRing from './ui/ProgressRing';
+import ModeSwitcher from './ModeSwitcher';
+import { useMode } from '../context/ModeContext';
 
 const Home = ({ user, onSignOut }) => {
+  const { mode } = useMode();
   const [expenses, setExpenses] = useState([]);
   const [challenges, setChallenges] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -15,8 +18,9 @@ const Home = ({ user, onSignOut }) => {
   const fetchData = async () => {
     try {
       setError(null);
+      setLoading(true);
       const [expRes, profileRes, chRes] = await Promise.all([
-        api.getExpenses(),
+        api.getExpenses('personal'),
         api.getProfile().catch(() => ({ data: null })),
         api.getChallenges().catch(() => ({ data: { challenges: [] } })),
       ]);
@@ -33,7 +37,7 @@ const Home = ({ user, onSignOut }) => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [mode]);
 
   const xpPercent = profile
     ? Math.round((profile.xpProgress / profile.xpToNextLevel) * 100)
@@ -65,6 +69,8 @@ const Home = ({ user, onSignOut }) => {
         <button type="button" className="sign-out-btn" onClick={onSignOut}>خروج</button>
       </div>
 
+      <ModeSwitcher />
+
       {profile && (
         <div className="glass-card xp-hero">
           <div className="xp-hero-top">
@@ -86,6 +92,17 @@ const Home = ({ user, onSignOut }) => {
           )}
         </div>
       )}
+
+      <Link to="/story" className="glass-card story-teaser">
+        <div>
+          <span className="ai-chip">Weekly Story</span>
+          <h3 style={{ marginTop: 8 }}>قصة أسبوعك</h3>
+          <p className="text-secondary" style={{ fontSize: '0.85rem', marginTop: 4 }}>
+            ملخص AI لمصروفاتك — جاهز للمشاركة
+          </p>
+        </div>
+        <span className="story-teaser-arrow">←</span>
+      </Link>
 
       {challenges.length > 0 && (
         <>

@@ -6,7 +6,7 @@ const AUTO_SAVE_CONFIDENCE = 0.8;
 /**
  * Voice / receipt flow: capture → process → auto-save (or confirm sheet) → done
  */
-export function useVoiceExpense({ onSaved } = {}) {
+export function useVoiceExpense({ onSaved, accountMode = 'personal' } = {}) {
   const [state, setState] = useState('idle');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -17,6 +17,8 @@ export function useVoiceExpense({ onSaved } = {}) {
   const chunksRef = useRef([]);
   const finalTranscriptRef = useRef('');
   const streamRef = useRef(null);
+  const modeRef = useRef(accountMode);
+  modeRef.current = accountMode;
 
   const saveExtracted = useCallback(async (extracted) => {
     const payload = {
@@ -25,6 +27,9 @@ export function useVoiceExpense({ onSaved } = {}) {
       note: extracted.note || null,
       transcription: extracted.transcription,
       source: extracted.source || 'voice',
+      entryType: extracted.entryType || extracted.entry_type || 'expense',
+      projectTag: extracted.projectTag || extracted.project_tag || null,
+      mode: modeRef.current,
     };
     const saved = await api.voiceConfirm(payload);
     const savedData = saved.data;
@@ -70,7 +75,10 @@ export function useVoiceExpense({ onSaved } = {}) {
     setState('processing');
     setLiveText('');
     try {
-      const res = await api.voiceProcess({ transcription: trimmed });
+      const res = await api.voiceProcess({
+        transcription: trimmed,
+        mode: modeRef.current,
+      });
       await handleExtracted({ ...res.data, source: 'voice' });
     } catch (err) {
       setError(parseVoiceError(err));
@@ -82,7 +90,11 @@ export function useVoiceExpense({ onSaved } = {}) {
     setState('processing');
     setLiveText('');
     try {
-      const res = await api.voiceProcess({ audioBlob: blob, filename });
+      const res = await api.voiceProcess({
+        audioBlob: blob,
+        filename,
+        mode: modeRef.current,
+      });
       await handleExtracted({ ...res.data, source: 'voice' });
     } catch (err) {
       setError(parseVoiceError(err));
@@ -96,7 +108,7 @@ export function useVoiceExpense({ onSaved } = {}) {
     setError('');
     setLiveText('جاري قراءة الإيصال...');
     try {
-      const res = await api.receiptProcess(file);
+      const res = await api.receiptProcess(file, modeRef.current);
       setLiveText('');
       await handleExtracted({ ...res.data, source: 'receipt' });
     } catch (err) {
@@ -191,6 +203,8 @@ export function useVoiceExpense({ onSaved } = {}) {
         category: edited.category,
         note: edited.note,
         transcription: edited.transcription,
+        entryType: edited.entryType || result?.entryType || 'expense',
+        projectTag: edited.projectTag ?? result?.projectTag,
         source: result?.source || 'voice',
       });
       return savedData;

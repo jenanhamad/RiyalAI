@@ -1,25 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { getCategoryMeta } from '../utils/categories';
+import { getCategoryMeta, getCategoriesForMode } from '../utils/categories';
 import { formatRiyal } from '../utils/format';
 
 const CONFIDENCE_THRESHOLD = 0.8;
 
-const VoiceConfirmSheet = ({ open, data, onConfirm, onRetry, onClose }) => {
+const VoiceConfirmSheet = ({ open, data, onConfirm, onRetry, onClose, accountMode = 'personal' }) => {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [category, setCategory] = useState('Other');
+  const [entryType, setEntryType] = useState('expense');
+  const [projectTag, setProjectTag] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const categories = getCategoriesForMode(accountMode);
+  const isBusiness = accountMode === 'business';
 
   useEffect(() => {
     if (!data) return;
     setAmount(String(data.amount ?? ''));
     setNote(data.note || '');
     setCategory(data.category || 'Other');
+    setEntryType(data.entryType || data.entry_type || 'expense');
+    setProjectTag(data.projectTag || data.project_tag || '');
   }, [data]);
 
   if (!open || !data) return null;
 
-  const cat = getCategoryMeta(category);
+  const cat = getCategoryMeta(category, accountMode);
   const lowConfidence = (data.confidence ?? 1) < CONFIDENCE_THRESHOLD;
 
   const handleConfirm = async () => {
@@ -32,6 +39,8 @@ const VoiceConfirmSheet = ({ open, data, onConfirm, onRetry, onClose }) => {
         category,
         note: note.trim() || null,
         transcription: data.transcription,
+        entryType: isBusiness ? entryType : 'expense',
+        projectTag: isBusiness ? projectTag.trim() || null : null,
       });
     } finally {
       setSaving(false);
@@ -47,12 +56,33 @@ const VoiceConfirmSheet = ({ open, data, onConfirm, onRetry, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="voice-sheet-handle" />
-        <h2 id="voice-sheet-title" className="voice-sheet-title">تأكيد المصروف</h2>
+        <h2 id="voice-sheet-title" className="voice-sheet-title">
+          {isBusiness ? 'تأكيد الحركة' : 'تأكيد المصروف'}
+        </h2>
 
         {lowConfidence && (
           <div className="voice-low-confidence">
             <p>هل قصدت:</p>
             <p className="voice-low-confidence-text">«{data.transcription}»</p>
+          </div>
+        )}
+
+        {isBusiness && (
+          <div className="mode-switcher compact" style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              className={`mode-switch-btn${entryType === 'expense' ? ' active' : ''}`}
+              onClick={() => setEntryType('expense')}
+            >
+              مصروف
+            </button>
+            <button
+              type="button"
+              className={`mode-switch-btn${entryType === 'income' ? ' active' : ''}`}
+              onClick={() => setEntryType('income')}
+            >
+              إيراد
+            </button>
           </div>
         )}
 
@@ -82,11 +112,8 @@ const VoiceConfirmSheet = ({ open, data, onConfirm, onRetry, onClose }) => {
             onChange={(e) => setCategory(e.target.value)}
             aria-label="التصنيف"
           >
-            {[
-              'Food & Dining', 'Transportation', 'Shopping', 'Entertainment',
-              'Utilities', 'Healthcare', 'Groceries', 'Gas', 'Other',
-            ].map((id) => (
-              <option key={id} value={id}>{getCategoryMeta(id).labelAr}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.labelAr}</option>
             ))}
           </select>
         </div>
@@ -98,9 +125,22 @@ const VoiceConfirmSheet = ({ open, data, onConfirm, onRetry, onClose }) => {
             className="voice-sheet-note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="مثال: غداء، بنزين..."
+            placeholder={isBusiness ? 'مثال: مورد، عميل، إعلان...' : 'مثال: غداء، بنزين...'}
           />
         </label>
+
+        {isBusiness && (
+          <label className="voice-sheet-note-label">
+            مشروع / عميل (اختياري)
+            <input
+              type="text"
+              className="voice-sheet-note"
+              value={projectTag}
+              onChange={(e) => setProjectTag(e.target.value)}
+              placeholder="مثال: مشروع أحمد"
+            />
+          </label>
+        )}
 
         {!lowConfidence && data.transcription && (
           <p className="voice-sheet-transcript text-secondary">«{data.transcription}»</p>

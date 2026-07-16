@@ -2,28 +2,35 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom';
 import { useVoiceExpense } from '../hooks/useVoiceExpense';
 import VoiceConfirmSheet from './VoiceConfirmSheet';
+import ModeSwitcher from './ModeSwitcher';
 import { api } from '../services/api';
 import { formatRiyal, getGreeting } from '../utils/format';
 import { getCategoryMeta } from '../utils/categories';
+import { useMode } from '../context/ModeContext';
 
 const VoiceScreen = ({ user }) => {
+  const { mode, isBusiness } = useMode();
   const [expenses, setExpenses] = useState([]);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [personalPrompt, setPersonalPrompt] = useState(null);
+  const [converting, setConverting] = useState(false);
+  const [convertMsg, setConvertMsg] = useState('');
   const fileInputRef = useRef(null);
 
   const fetchExpenses = useCallback(async () => {
     try {
-      const res = await api.getExpenses();
+      const res = await api.getExpenses(mode);
       setExpenses(res.data.expenses || []);
     } catch {
       setExpenses([]);
     } finally {
       setLoadingExpenses(false);
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
+    setLoadingExpenses(true);
     fetchExpenses();
   }, [fetchExpenses]);
 
@@ -43,7 +50,24 @@ const VoiceScreen = ({ user }) => {
     processReceiptFile,
     confirmExpense,
     dismiss,
-  } = useVoiceExpense({ onSaved: fetchExpenses });
+  } = useVoiceExpense({
+    accountMode: mode,
+    onSaved: (savedData) => {
+      fetchExpenses();
+      if (savedData?.suggestPersonal && savedData?.expenseId) {
+        setPersonalPrompt({
+          expenseId: savedData.expenseId,
+          promptAr: savedData.personalSuggestion?.promptAr
+            || 'يبدو مصروف شخصي. تبي أحوله لك لمصروف أفراد؟',
+          amount: savedData.amount,
+          note: savedData.note || savedData.transcription,
+        });
+        setConvertMsg('');
+      } else {
+        setPersonalPrompt(null);
+      }
+    },
+  });
 
   const isRecording = state === 'recording';
   const isProcessing = state === 'processing';
@@ -53,6 +77,8 @@ const VoiceScreen = ({ user }) => {
 
   useEffect(() => {
     if (state !== 'done') return undefined;
+    // Keep result visible while asking to convert to personal
+    if (personalPrompt) return undefined;
     const t = setTimeout(() => {
       dismiss();
       if (previewUrl) {
@@ -61,7 +87,39 @@ const VoiceScreen = ({ user }) => {
       }
     }, 2500);
     return () => clearTimeout(t);
-  }, [state, dismiss, previewUrl]);
+  }, [state, dismiss, previewUrl, personalPrompt]);
+
+  const dismissPersonalPrompt = () => {
+    setPersonalPrompt(null);
+    dismiss();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl('');
+    }
+  };
+
+  const handleConvertPersonal = async () => {
+    if (!personalPrompt?.expenseId || converting) return;
+    setConverting(true);
+    try {
+      const res = await api.convertToPersonal(personalPrompt.expenseId);
+      setConvertMsg(res.data.messageAr || 'تم التحويل لمصروف أفراد');
+      setPersonalPrompt(null);
+      await fetchExpenses();
+      setTimeout(() => {
+        setConvertMsg('');
+        dismiss();
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          setPreviewUrl('');
+        }
+      }, 2200);
+    } catch (err) {
+      setConvertMsg(err.response?.data?.detail || 'تعذر التحويل');
+    } finally {
+      setConverting(false);
+    }
+  };
 
   const recentExpenses = useMemo(() => (
     [...expenses]
@@ -96,15 +154,26 @@ const VoiceScreen = ({ user }) => {
   };
 
   const statusText = () => {
-    if (isReceiptMode && isProcessing) return 'نقرأ الإيصال ونصنّف المصروف...';
+    if (isReceiptMode && isProcessing) {
+      return isBusiness ? 'نقرأ الإيصال ونصنّف الحركة...' : 'نقرأ الإيصال ونصنّف المصروف...';
+    }
     if (isRecording && liveText && !liveText.startsWith('جاري')) return null;
     if (isRecording) return 'تكلم الآن... اضغط ⏹ لما تخلص';
-    if (isProcessing) return isReceiptMode ? 'نقرأ الإيصال...' : 'نصنّف مصروفك ونضيفه...';
+    if (isProcessing) {
+      return isReceiptMode
+        ? 'نقرأ الإيصال...'
+        : (isBusiness ? 'نصنّف حركة العمل...' : 'نصنّف مصروفك ونضيفه...');
+    }
     if (state === 'done' && saved) {
+      if (isBusiness || !(saved.xp_awarded ?? saved.gamification?.xpEarned)) {
+        return saved.messageAr || 'تم التسجيل';
+      }
       return `تم الإضافة! +${saved.xp_awarded ?? saved.gamification?.xpEarned ?? 20} XP`;
     }
     if (isReceiptMode) return 'صوّر الإيصال أو اختر صورة من الاستوديو';
-    return 'اضغط وقول مثلاً: قهوة ١٥ ريال';
+    return isBusiness
+      ? 'قول مثلاً: بيعت اليوم ١٢٠٠ ريال — أو اشتريت مواد ٣٤٠'
+      : 'اضغط وقول مثلاً: قهوة ١٥ ريال';
   };
 
   const handleRetry = () => {
@@ -121,13 +190,17 @@ const VoiceScreen = ({ user }) => {
     <div className="page voice-screen voice-home">
       <div className="voice-home-header">
         <div>
-          <p className="tagline">ريالي · ryialAI</p>
+          <p className="tagline">{isBusiness ? 'ريالي أعمال' : 'ريالي · ryialAI'}</p>
           <h1 className="page-title">{getGreeting()}، {user?.username || 'صديقي'}</h1>
         </div>
       </div>
 
+      <ModeSwitcher compact />
+
       <p className="page-subtitle text-secondary">
-        صوت أو صورة — نصنّف مصروفك ونضيفه تحت التصنيف
+        {isBusiness
+          ? 'سجّل إيراد أو مصروف عمل بالصوت أو الإيصال'
+          : 'صوت أو صورة — نصنّف مصروفك ونضيفه تحت التصنيف'}
       </p>
 
       <div className="input-mode-toggle" role="tablist" aria-label="طريقة الإدخال">
@@ -201,16 +274,58 @@ const VoiceScreen = ({ user }) => {
 
       {state === 'done' && saved && (
         <div className="voice-result-box ai">
-          <p className="voice-live-text">{saved.messageAr || 'تم حفظ المصروف'}</p>
+          <p className="voice-live-text">{saved.messageAr || 'تم الحفظ'}</p>
           <p className="voice-result-meta">
+            {saved.entryType === 'income' ? '+' : ''}
             {formatRiyal(saved.amount)}
             {' · '}
-            {getCategoryMeta(saved.category).labelAr}
+            {saved.entryType === 'income'
+              ? 'إيراد'
+              : getCategoryMeta(saved.category, mode).labelAr}
           </p>
         </div>
       )}
 
-      <h2 className="section-title voice-categories-title">آخر المصروفات</h2>
+      {convertMsg && (
+        <div className="voice-result-box ai">
+          <p className="voice-live-text">{convertMsg}</p>
+        </div>
+      )}
+
+      {personalPrompt && (
+        <div className="glass-card personal-convert-card" role="dialog" aria-label="تحويل لمصروف شخصي">
+          <p className="personal-convert-title">مصروف شخصي؟</p>
+          <p className="text-secondary personal-convert-text">{personalPrompt.promptAr}</p>
+          {(personalPrompt.note || personalPrompt.amount) && (
+            <p className="personal-convert-meta font-mono">
+              {personalPrompt.note ? `«${personalPrompt.note}» · ` : ''}
+              {formatRiyal(personalPrompt.amount || 0)}
+            </p>
+          )}
+          <div className="personal-convert-actions">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleConvertPersonal}
+              disabled={converting}
+            >
+              {converting ? '...' : 'إيوه، حوّلها لأفراد'}
+            </button>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={dismissPersonalPrompt}
+              disabled={converting}
+            >
+              لا، تبقى أعمال
+            </button>
+          </div>
+        </div>
+      )}
+
+      <h2 className="section-title voice-categories-title">
+        {isBusiness ? 'آخر الحركات' : 'آخر المصروفات'}
+      </h2>
 
       {loadingExpenses ? (
         <div className="empty-state">
@@ -218,27 +333,37 @@ const VoiceScreen = ({ user }) => {
         </div>
       ) : recentExpenses.length === 0 ? (
         <div className="empty-state">
-          <p>ما عندك مصروفات بعد</p>
+          <p>{isBusiness ? 'ما عندك حركات عمل بعد' : 'ما عندك مصروفات بعد'}</p>
           <p>🎤 صوت أو 📷 إيصال</p>
         </div>
       ) : (
         <div className="voice-recent-list">
           {recentExpenses.map((exp) => {
-            const cat = getCategoryMeta(exp.category);
+            const cat = getCategoryMeta(exp.category, mode);
+            const isIncome = exp.entryType === 'income';
             return (
               <Link
                 key={exp.expenseId}
                 to={`/expense/${exp.expenseId}`}
                 className="expense-item voice-recent-item"
               >
-                <div className="expense-item-icon" style={{ borderLeft: `3px solid ${cat.color}` }}>
-                  {cat.icon}
+                <div
+                  className="expense-item-icon"
+                  style={{ borderLeft: `3px solid ${isIncome ? '#22c55e' : cat.color}` }}
+                >
+                  {isIncome ? '↑' : cat.icon}
                 </div>
                 <div className="expense-item-body">
                   <div className="expense-item-merchant">{exp.merchant}</div>
-                  <div className="expense-item-meta">{cat.labelAr} · {exp.date}</div>
+                  <div className="expense-item-meta">
+                    {isIncome ? 'إيراد' : cat.labelAr}
+                    {exp.projectTag ? ` · ${exp.projectTag}` : ''}
+                    {' · '}{exp.date}
+                  </div>
                 </div>
-                <div className="expense-item-amount">{formatRiyal(exp.amount)}</div>
+                <div className={`expense-item-amount ${isIncome ? 'income' : ''}`}>
+                  {isIncome ? '+' : ''}{formatRiyal(exp.amount)}
+                </div>
               </Link>
             );
           })}
@@ -251,6 +376,7 @@ const VoiceScreen = ({ user }) => {
         onConfirm={confirmExpense}
         onRetry={handleRetry}
         onClose={dismiss}
+        accountMode={mode}
       />
     </div>
   );

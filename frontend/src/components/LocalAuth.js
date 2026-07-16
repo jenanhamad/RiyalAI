@@ -6,6 +6,7 @@ const LocalAuth = ({ onAuthenticated }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [accountMode, setAccountMode] = useState('personal');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,11 +17,12 @@ const LocalAuth = ({ onAuthenticated }) => {
     try {
       const data = mode === 'login'
         ? await localLogin(username, password)
-        : await localRegister(username, password, email);
+        : await localRegister(username, password, email, accountMode);
       onAuthenticated({
         username: data.username || data.displayName,
         userId: data.userId,
         email: data.email,
+        activeMode: data.activeMode || accountMode,
       });
     } catch (err) {
       setError(err.message);
@@ -35,7 +37,7 @@ const LocalAuth = ({ onAuthenticated }) => {
         <h1>ريالي</h1>
         <p className="tagline">مالك، في يدك</p>
         <p className="text-secondary" style={{ marginTop: 8, fontSize: '0.85rem' }}>
-          ryialAI
+          أفراد أو أعمال — نفس التطبيق
         </p>
       </div>
 
@@ -57,17 +59,48 @@ const LocalAuth = ({ onAuthenticated }) => {
         </div>
 
         {mode === 'register' && (
-          <div className="form-field">
-            <label>البريد الإلكتروني</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              placeholder="example@email.com"
-            />
-          </div>
+          <>
+            <div className="form-field">
+              <label>البريد الإلكتروني</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="example@email.com"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>نوع الحساب</label>
+              <div className="mode-switcher auth-mode-pick" role="radiogroup" aria-label="نوع الحساب">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={accountMode === 'personal'}
+                  className={`mode-switch-btn${accountMode === 'personal' ? ' active' : ''}`}
+                  onClick={() => setAccountMode('personal')}
+                >
+                  أفراد
+                  <span className="mode-pick-hint">XP وتحديات</span>
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={accountMode === 'business'}
+                  className={`mode-switch-btn${accountMode === 'business' ? ' active' : ''}`}
+                  onClick={() => setAccountMode('business')}
+                >
+                  أعمال
+                  <span className="mode-pick-hint">ربح وضريبة</span>
+                </button>
+              </div>
+              <p className="text-secondary" style={{ fontSize: '0.75rem', marginTop: 8 }}>
+                تقدر تبدّل بين الوضعين في أي وقت من التطبيق
+              </p>
+            </div>
+          </>
         )}
 
         <div className="form-field">

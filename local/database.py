@@ -28,6 +28,25 @@ def _migrate_users(conn):
                WHERE username IS NULL OR trim(username) = ''"""
         )
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+    if "active_mode" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN active_mode TEXT DEFAULT 'personal'")
+        conn.execute("UPDATE users SET active_mode = 'personal' WHERE active_mode IS NULL")
+
+
+def _migrate_expenses(conn):
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(expenses)")}
+    if "mode" not in cols:
+        conn.execute("ALTER TABLE expenses ADD COLUMN mode TEXT DEFAULT 'personal'")
+        conn.execute("UPDATE expenses SET mode = 'personal' WHERE mode IS NULL")
+    if "entry_type" not in cols:
+        conn.execute("ALTER TABLE expenses ADD COLUMN entry_type TEXT DEFAULT 'expense'")
+        conn.execute("UPDATE expenses SET entry_type = 'expense' WHERE entry_type IS NULL")
+    if "project_tag" not in cols:
+        conn.execute("ALTER TABLE expenses ADD COLUMN project_tag TEXT DEFAULT ''")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_expenses_user_mode ON expenses(user_id, mode)"
+    )
 
 
 def _migrate_social(conn):
@@ -64,6 +83,7 @@ def init_db():
             last_log_date TEXT,
             weekly_xp INTEGER DEFAULT 0,
             week_start TEXT,
+            active_mode TEXT DEFAULT 'personal',
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -82,6 +102,9 @@ def init_db():
             has_receipt INTEGER DEFAULT 0,
             is_recurring INTEGER DEFAULT 0,
             receipt_key TEXT,
+            mode TEXT DEFAULT 'personal',
+            entry_type TEXT DEFAULT 'expense',
+            project_tag TEXT DEFAULT '',
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -129,6 +152,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_voice_logs_user_date ON voice_logs(user_id, created_at);
     """)
     _migrate_users(conn)
+    _migrate_expenses(conn)
     _migrate_social(conn)
     conn.commit()
     conn.close()
