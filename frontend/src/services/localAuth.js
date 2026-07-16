@@ -65,3 +65,26 @@ export async function localLogin(username, password) {
   setLocalSession(data);
   return data;
 }
+
+export async function forgotPassword(email) {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim() }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || data.error || 'تعذّر إرسال الرابط');
+  return data.message || 'إذا كان البريد مسجّلاً، ستصلك رسالة خلال دقائق.';
+}
+
+export async function resetPassword(token, password) {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || data.error || 'تعذّر تغيير كلمة المرور');
+  setLocalSession(data);
+  return data;
+}

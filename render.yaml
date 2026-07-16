@@ -16,6 +16,10 @@ services:
         generateValue: true
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: OPENROUTER_TRANSCRIPTION_MODEL
+        value: google/gemini-2.0-flash-001
+      - key: OPENROUTER_RECEIPT_MODEL
+        value: google/gemini-2.0-flash-001
       - key: PUBLIC_URL
         sync: false
     disk:

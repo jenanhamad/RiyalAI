@@ -25,6 +25,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 from database import init_db, get_connection
 import gamification as gam
 import auth
+import email_service
 import voice_service as voice
 import seed_sample_data as seed_demo
 import friends as social
@@ -86,6 +87,18 @@ class LoginBody(BaseModel):
     password: str
 
 
+class ForgotPasswordBody(BaseModel):
+    email: str
+
+
+class ResetPasswordBody(BaseModel):
+    token: str
+    password: str
+
+
+FORGOT_PASSWORD_MESSAGE = "إذا كان البريد مسجّلاً، ستصلك رسالة خلال دقائق."
+
+
 class ModeBody(BaseModel):
     mode: str
 
@@ -139,12 +152,15 @@ def _expense_row_to_api(row) -> dict:
 @app.get("/expenses/health")
 def health():
     openrouter_ok = bool(os.environ.get("OPENROUTER_API_KEY", "").strip())
-    return {
+    payload = {
         "status": "healthy",
         "service": "ريالي-ryialAI",
         "timestamp": datetime.utcnow().isoformat(),
         "openrouterConfigured": openrouter_ok,
     }
+    if openrouter_ok:
+        payload["openrouterModels"] = orouter.get_models_info()
+    return payload
 
 
 @app.post("/admin/seed-demo")
@@ -179,6 +195,38 @@ def login(body: LoginBody):
         return auth.login_user(body.username, body.password)
     except ValueError:
         raise HTTPException(401, "Invalid username or password")
+
+
+@app.post("/auth/forgot-password")
+def forgot_password(body: ForgotPasswordBody):
+    try:
+        token = auth.request_password_reset(body.email)
+        if token:
+            base = os.environ.get("PUBLIC_URL", "").strip().rstrip("/")
+            reset_url = (
+                f"{base}/reset-password?token={token}"
+                if base
+                else f"/reset-password?token={token}"
+            )
+            try:
+                if email_service.smtp_configured():
+                    email_service.send_password_reset_email(body.email.strip(), reset_url)
+                else:
+                    print(f"[password-reset] SMTP not set — link: {reset_url}", flush=True)
+            except Exception as exc:
+                print(f"[password-reset] email failed: {exc}", flush=True)
+                print(f"[password-reset] fallback link: {reset_url}", flush=True)
+        return {"message": FORGOT_PASSWORD_MESSAGE}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/auth/reset-password")
+def reset_password(body: ResetPasswordBody):
+    try:
+        return auth.reset_password_with_token(body.token, body.password)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.get("/profile")

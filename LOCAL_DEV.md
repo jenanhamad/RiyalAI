@@ -45,7 +45,14 @@ Back up the `data/` folder to keep your history.
 
 ## AI features
 
-Voice and challenges need `OPENROUTER_API_KEY` in `local/.env`. Everything else works offline.
+Voice, receipt OCR, and challenges need `OPENROUTER_API_KEY` in `local/.env`. Optional model overrides:
+
+```
+OPENROUTER_TRANSCRIPTION_MODEL=google/gemini-2.0-flash-001
+OPENROUTER_RECEIPT_MODEL=google/gemini-2.0-flash-001
+```
+
+Everything else works offline.
 
 ---
 

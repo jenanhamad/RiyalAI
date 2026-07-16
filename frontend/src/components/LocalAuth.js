@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { localLogin, localRegister } from '../services/localAuth';
+import { localLogin, localRegister, forgotPassword } from '../services/localAuth';
 
 const LocalAuth = ({ onAuthenticated }) => {
   const [mode, setMode] = useState('login');
@@ -8,13 +8,20 @@ const LocalAuth = ({ onAuthenticated }) => {
   const [password, setPassword] = useState('');
   const [accountMode, setAccountMode] = useState('personal');
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
     try {
+      if (mode === 'forgot') {
+        const msg = await forgotPassword(email);
+        setSuccess(msg);
+        return;
+      }
       const data = mode === 'login'
         ? await localLogin(username, password)
         : await localRegister(username, password, email, accountMode);
@@ -31,6 +38,12 @@ const LocalAuth = ({ onAuthenticated }) => {
     }
   };
 
+  const switchMode = (next) => {
+    setMode(next);
+    setError(null);
+    setSuccess(null);
+  };
+
   return (
     <div className="auth-screen">
       <div className="auth-logo">
@@ -43,7 +56,27 @@ const LocalAuth = ({ onAuthenticated }) => {
 
       <form className="glass-card auth-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner">{error}</div>}
+        {success && <div className="success-banner">{success}</div>}
 
+        {mode === 'forgot' ? (
+          <>
+            <p className="text-secondary" style={{ fontSize: '0.85rem', marginBottom: 16 }}>
+              أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.
+            </p>
+            <div className="form-field">
+              <label>البريد الإلكتروني</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="example@email.com"
+              />
+            </div>
+          </>
+        ) : (
+          <>
         <div className="form-field">
           <label>اسم المستخدم</label>
           <input
@@ -115,20 +148,35 @@ const LocalAuth = ({ onAuthenticated }) => {
           />
         </div>
 
+        {mode === 'login' && (
+          <button
+            type="button"
+            className="auth-forgot-link"
+            onClick={() => switchMode('forgot')}
+          >
+            نسيت كلمة المرور؟
+          </button>
+        )}
+          </>
+        )}
+
         <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? '...' : mode === 'login' ? 'دخول' : 'إنشاء حساب'}
+          {loading ? '...' : mode === 'login' ? 'دخول' : mode === 'forgot' ? 'إرسال الرابط' : 'إنشاء حساب'}
         </button>
 
+        {mode === 'forgot' ? (
+          <button type="button" className="btn-ghost" onClick={() => switchMode('login')}>
+            العودة لتسجيل الدخول
+          </button>
+        ) : (
         <button
           type="button"
           className="btn-ghost"
-          onClick={() => {
-            setMode(mode === 'login' ? 'register' : 'login');
-            setError(null);
-          }}
+          onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
         >
           {mode === 'login' ? 'حساب جديد' : 'عندك حساب؟ سجّل دخول'}
         </button>
+        )}
       </form>
     </div>
   );

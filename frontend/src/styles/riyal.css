@@ -952,6 +952,30 @@ body::before {
   padding: 24px;
 }
 
+.auth-forgot-link {
+  display: block;
+  width: 100%;
+  margin: -8px 0 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--green-mid);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.auth-forgot-link:hover {
+  text-decoration: underline;
+}
+
+.auth-text-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  margin-top: 8px;
+}
+
 .form-field { margin-bottom: 16px; }
 .form-field label {
   display: block;

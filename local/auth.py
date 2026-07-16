@@ -1,6 +1,8 @@
 """Simple JWT auth for local personal use."""
+import hashlib
 import os
 import re
+import secrets
 import uuid
 from datetime import datetime, timedelta, date
 
@@ -12,8 +14,10 @@ from database import get_connection
 SECRET = os.environ.get("JWT_SECRET", "riyalai-local-dev-secret-change-me")
 ALGORITHM = "HS256"
 TOKEN_HOURS = 24 * 30  # 30 days for personal app
+RESET_TOKEN_HOURS = 1
 USERNAME_RE = re.compile(r"^[^\s@]{3,20}$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+LOCAL_EMAIL_SUFFIX = "@local.riyalai"
 
 
 def hash_password(password: str) -> str:
@@ -120,6 +124,91 @@ def register_user(
         "email": normalized_email,
         "activeMode": mode,
     }
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _is_real_email(email: str | None) -> bool:
+    if not email:
+        return False
+    return not str(email).lower().endswith(LOCAL_EMAIL_SUFFIX)
+
+
+def request_password_reset(email: str) -> str | None:
+    """Return raw reset token if user exists with a real email; else None."""
+    normalized = normalize_email(email)
+    if not normalized:
+        raise ValueError("البريد الإلكتروني غير صالح")
+
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT user_id, email FROM users WHERE lower(email) = lower(?)",
+        (normalized,),
+    ).fetchone()
+    if not row or not _is_real_email(row["email"]):
+        conn.close()
+        return None
+
+    user_id = row["user_id"]
+    now = datetime.utcnow()
+    now_iso = now.isoformat()
+    token = secrets.token_urlsafe(32)
+    token_hash = _hash_reset_token(token)
+    expires_at = (now + timedelta(hours=RESET_TOKEN_HOURS)).isoformat()
+
+    conn.execute(
+        "UPDATE password_reset_tokens SET used_at = ? WHERE user_id = ? AND used_at IS NULL",
+        (now_iso, user_id),
+    )
+    conn.execute(
+        """INSERT INTO password_reset_tokens
+           (token_id, user_id, token_hash, expires_at, created_at)
+           VALUES (?, ?, ?, ?, ?)""",
+        (str(uuid.uuid4()), user_id, token_hash, expires_at, now_iso),
+    )
+    conn.commit()
+    conn.close()
+    return token
+
+
+def reset_password_with_token(token: str, new_password: str) -> dict:
+    if len(new_password) < 6:
+        raise ValueError("كلمة المرور 6 أحرف على الأقل")
+    raw = (token or "").strip()
+    if len(raw) < 20:
+        raise ValueError("رابط غير صالح")
+
+    token_hash = _hash_reset_token(raw)
+    now = datetime.utcnow()
+    now_iso = now.isoformat()
+    conn = get_connection()
+    row = conn.execute(
+        """SELECT t.token_id, t.user_id, t.expires_at, t.used_at, u.username
+           FROM password_reset_tokens t
+           JOIN users u ON u.user_id = t.user_id
+           WHERE t.token_hash = ?""",
+        (token_hash,),
+    ).fetchone()
+    if not row or row["used_at"]:
+        conn.close()
+        raise ValueError("رابط غير صالح أو مستخدم مسبقاً")
+    if row["expires_at"] < now_iso:
+        conn.close()
+        raise ValueError("انتهت صلاحية الرابط — اطلب رابطاً جديداً")
+
+    conn.execute(
+        "UPDATE users SET password_hash = ?, updated_at = ? WHERE user_id = ?",
+        (hash_password(new_password), now_iso, row["user_id"]),
+    )
+    conn.execute(
+        "UPDATE password_reset_tokens SET used_at = ? WHERE token_id = ?",
+        (now_iso, row["token_id"]),
+    )
+    conn.commit()
+    conn.close()
+    return login_user(row["username"], new_password)
 
 
 def login_user(username: str, password: str) -> dict:

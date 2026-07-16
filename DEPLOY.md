@@ -14,8 +14,17 @@
 | Variable | القيمة |
 |----------|--------|
 | `JWT_SECRET` | سلسلة عشوائية طويلة (مثلاً 32 حرف) |
-| `OPENROUTER_API_KEY` | `sk-or-v1-...` (للتحديات والصوت) |
+| `OPENROUTER_API_KEY` | `sk-or-v1-...` (مطلوب للـ AI) |
+| `OPENROUTER_MODEL` | `anthropic/claude-haiku-4.5` — تحديات، story، استخراج من النص |
+| `OPENROUTER_RECEIPT_MODEL` | `google/gemini-2.5-flash-lite` — قراءة إيصالات الصور |
+| `OPENROUTER_TRANSCRIPTION_MODEL` | *(اختياري)* بدونها الصوت يستخدم `google/gemini-2.0-flash-001` |
 | `PUBLIC_URL` | رابط التطبيق بعد النشر، مثل `https://riyal-production.up.railway.app` |
+| `SMTP_HOST` | *(لنسيت كلمة المرور)* مثل `smtp.gmail.com` أو `smtp.resend.com` |
+| `SMTP_PORT` | `587` (افتراضي) |
+| `SMTP_USER` | اسم مستخدم SMTP |
+| `SMTP_PASSWORD` | كلمة مرور SMTP أو App Password |
+| `SMTP_FROM` | `ريالي <noreply@yourdomain.com>` |
+| `SMTP_USE_TLS` | `1` (افتراضي) |
 | `RIYAL_ENV` | `production` |
 | `DATA_DIR` | `/app/data` |
 | `SERVE_FRONTEND` | `1` |
@@ -42,6 +51,8 @@ Railway يكتشف `Dockerfile` تلقائياً. انتظر حتى **Success** 
 | 502 / Crash | تأكد `JWT_SECRET` موجود |
 | رفع إيصال لا يعمل | عيّن `PUBLIC_URL` = رابط Railway بالضبط |
 | تحديات AI لا تعمل | أضف `OPENROUTER_API_KEY` |
+| الصوت/الإيصال لا يعمل | تأكد `OPENROUTER_TRANSCRIPTION_MODEL` و `OPENROUTER_RECEIPT_MODEL`؛ تحقق من `/expenses/health` → `openrouterModels` |
+| نسيت كلمة المرور لا ترسل بريد | أضف `SMTP_*` و `PUBLIC_URL`؛ بدون SMTP الرابط يظهر في Railway Logs فقط |
 
 ### بيانات تجريبية على الـ Volume
 
@@ -85,6 +96,8 @@ docker build -t riyal .
 docker run -p 8000:8000 \
   -e JWT_SECRET=test-secret-change-me \
   -e OPENROUTER_API_KEY=sk-or-v1-... \
+  -e OPENROUTER_TRANSCRIPTION_MODEL=google/gemini-2.0-flash-001 \
+  -e OPENROUTER_RECEIPT_MODEL=google/gemini-2.0-flash-001 \
   -e PUBLIC_URL=http://localhost:8000 \
   -v riyal-data:/app/data \
   riyal

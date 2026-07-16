@@ -11,6 +11,7 @@ import WeeklyStory from './components/WeeklyStory';
 import BusinessGlance from './components/BusinessGlance';
 import VoiceScreen from './components/VoiceScreen';
 import LocalAuth from './components/LocalAuth';
+import ResetPassword from './components/ResetPassword';
 import Friends, { parseInvite } from './components/Friends';
 import BottomNav from './components/layout/BottomNav';
 import { ModeProvider, useMode } from './context/ModeContext';
@@ -159,7 +160,12 @@ function App() {
     if (invite) sessionStorage.setItem('pendingInvite', parseInvite(invite));
 
     return (
-      <LocalAuth onAuthenticated={handleAuthenticated} />
+      <Router>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPassword onAuthenticated={handleAuthenticated} />} />
+          <Route path="*" element={<LocalAuth onAuthenticated={handleAuthenticated} />} />
+        </Routes>
+      </Router>
     );
   }
 

@@ -10,6 +10,15 @@ TRANSCRIPTION_MODEL = os.environ.get("OPENROUTER_TRANSCRIPTION_MODEL", "google/g
 RECEIPT_VISION_MODEL = os.environ.get("OPENROUTER_RECEIPT_MODEL", TRANSCRIPTION_MODEL)
 
 
+def get_models_info() -> dict[str, str]:
+    """Current OpenRouter model IDs (from env or defaults) — for health checks."""
+    return {
+        "text": DEFAULT_MODEL,
+        "transcription": TRANSCRIPTION_MODEL,
+        "receipt": RECEIPT_VISION_MODEL,
+    }
+
+
 def _api_key():
     key = os.environ.get("OPENROUTER_API_KEY", "")
     if not key:
