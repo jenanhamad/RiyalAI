@@ -1,0 +1,2 @@
+# Pillow handled by external layer
+# boto3 is available in Lambda runtime

@@ -5,7 +5,6 @@ node_modules
 frontend/node_modules
 frontend/build
 data
-cdk.out
 __pycache__
 *.pyc
 .env
@@ -14,10 +13,3 @@ frontend/.env.local
 .DS_Store
 *.md
 !DEPLOY.md
-tests
-riyalai
-functions/receipt_*
-functions/spending_analysis
-functions/challenge_generator
-functions/expense_app.py
-functions/gamification.py

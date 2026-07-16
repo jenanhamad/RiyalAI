@@ -47,10 +47,6 @@ Back up the `data/` folder to keep your history.
 
 Voice and challenges need `OPENROUTER_API_KEY` in `local/.env`. Everything else works offline.
 
-## AWS code
-
-The `riyalai/` and `functions/` folders are kept for when you want to publish later. The app does **not** use them during local dev.
-
 ---
 
 ## التجربة على الجوال (نفس الواي فاي)

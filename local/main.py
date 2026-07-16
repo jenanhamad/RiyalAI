@@ -29,12 +29,7 @@ import voice_service as voice
 import seed_sample_data as seed_demo
 import friends as social
 
-# OpenRouter only — import by path so we don't shadow local/gamification.py
-import importlib.util
-_or_path = Path(__file__).parent.parent / "functions" / "openrouter.py"
-_spec = importlib.util.spec_from_file_location("openrouter", _or_path)
-orouter = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(orouter)
+import openrouter as orouter
 
 _DATA_ROOT = Path(os.environ.get("DATA_DIR", str(Path(__file__).parent.parent / "data")))
 UPLOAD_DIR = _DATA_ROOT / "uploads"

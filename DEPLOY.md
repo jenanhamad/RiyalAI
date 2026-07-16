@@ -18,6 +18,7 @@
 | `PUBLIC_URL` | رابط التطبيق بعد النشر، مثل `https://riyal-production.up.railway.app` |
 | `RIYAL_ENV` | `production` |
 | `DATA_DIR` | `/app/data` |
+| `SERVE_FRONTEND` | `1` |
 
 > بعد أول deploy، انسخ الرابط العام وضعه في `PUBLIC_URL` ثم **Redeploy**.
 
@@ -32,6 +33,37 @@
 ### 4) Deploy
 
 Railway يكتشف `Dockerfile` تلقائياً. انتظر حتى **Success** ثم افتح الرابط العام.
+
+### استكشاف الأخطاء
+
+| المشكلة | الحل |
+|---------|------|
+| Build failed | تحقق من Logs؛ غالباً `npm` — أعد Deploy |
+| 502 / Crash | تأكد `JWT_SECRET` موجود |
+| رفع إيصال لا يعمل | عيّن `PUBLIC_URL` = رابط Railway بالضبط |
+| تحديات AI لا تعمل | أضف `OPENROUTER_API_KEY` |
+
+### بيانات تجريبية على الـ Volume
+
+**طريقة 1 — من Terminal (بعد `railway login`):**
+
+```bash
+railway link
+railway run python local/seed_sample_data.py jinan --replace
+```
+
+**طريقة 2 — عبر HTTP (بدون CLI):**
+
+1. في Variables أضف مؤقتاً: `SEED_SECRET=كلمة-سر-عشوائية`
+2. Redeploy
+3. نفّذ (استبدل الرابط والسر):
+
+```bash
+curl -X POST "https://YOUR-APP.up.railway.app/admin/seed-demo?username=jinan&replace=true" \
+  -H "X-Seed-Secret: كلمة-سر-عشوائية"
+```
+
+4. احذف `SEED_SECRET` من Variables بعد النجاح
 
 ---
 
@@ -68,6 +100,6 @@ docker run -p 8000:8000 \
 - **HTTPS** مفعّل تلقائياً → الميكروفون يشتغل على آيفون
 - أضف للشاشة الرئيسية من Safari / Chrome
 
-## AWS (لاحقاً)
+## تكلفة تقريبية (Railway)
 
-كود CDK موجود في `riyalai/` لو حاب تنتقل لـ Cognito + DynamoDB — الحل الحالي أبسط ومناسب للاستخدام الشخصي.
+خطة Hobby ~ $5/شهر مع volume صغير — راجع [railway.app/pricing](https://railway.app/pricing).

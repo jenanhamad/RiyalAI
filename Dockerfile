@@ -20,7 +20,6 @@ COPY local/requirements.txt ./local/
 RUN pip install --no-cache-dir -r local/requirements.txt
 
 COPY local/ ./local/
-COPY functions/openrouter.py ./functions/openrouter.py
 COPY --from=frontend-build /build/frontend/build ./frontend/build
 
 ENV RIYAL_ENV=production

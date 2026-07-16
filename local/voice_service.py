@@ -1,10 +1,10 @@
 """Voice expense via OpenRouter only (transcribe + extract)."""
 import base64
-import importlib.util
 import json
 import re
-from pathlib import Path
 from typing import Any
+
+import openrouter
 
 VOICE_DAILY_LIMIT = 30
 
@@ -44,14 +44,6 @@ _MIME_BY_EXT = {
 }
 
 
-def _openrouter():
-    or_path = Path(__file__).parent.parent / "functions" / "openrouter.py"
-    spec = importlib.util.spec_from_file_location("openrouter", or_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
 def normalize_category(raw: str) -> str:
     if not raw:
         return "Other"
@@ -81,14 +73,14 @@ def transcribe_audio(audio_bytes: bytes, filename: str = "voice.webm") -> str:
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "webm"
     mime = _MIME_BY_EXT.get(ext, "audio/webm")
     b64 = base64.b64encode(audio_bytes).decode("ascii")
-    text = _openrouter().transcribe_audio_base64(b64, mime)
+    text = openrouter.transcribe_audio_base64(b64, mime)
     if not text:
         raise ValueError("OpenRouter returned empty transcription")
     return text.strip()
 
 
 def extract_expense(transcription: str) -> dict[str, Any]:
-    raw = _openrouter().extract_expense_from_text(transcription)
+    raw = openrouter.extract_expense_from_text(transcription)
     return _normalize_extracted(raw, transcription)
 
 
@@ -96,7 +88,7 @@ def extract_receipt_image(image_bytes: bytes, filename: str = "receipt.jpg") -> 
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
     mime = _MIME_BY_EXT.get(ext, "image/jpeg")
     b64 = base64.b64encode(image_bytes).decode("ascii")
-    raw = _openrouter().extract_expense_from_receipt_image(b64, mime)
+    raw = openrouter.extract_expense_from_receipt_image(b64, mime)
     merchant = (raw.get("merchant") or raw.get("note") or "إيصال").strip()
     label = f"إيصال: {merchant}"
     return _normalize_extracted(raw, label)
