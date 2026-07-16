@@ -5,7 +5,7 @@ import urllib.error
 import urllib.request
 
 OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3.5-haiku")
+DEFAULT_MODEL = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-haiku-4.5")
 TRANSCRIPTION_MODEL = os.environ.get("OPENROUTER_TRANSCRIPTION_MODEL", "google/gemini-2.0-flash-001")
 RECEIPT_VISION_MODEL = os.environ.get("OPENROUTER_RECEIPT_MODEL", TRANSCRIPTION_MODEL)
 
