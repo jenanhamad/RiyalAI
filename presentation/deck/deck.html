@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>ريـال AI — عرض لجنة التحكيم</title>
+<style>
+  /* ── Amed 2026 Design Tokens ── */
+  @font-face { font-family: 'Cairo'; src: url('fonts/cairo-v31-arabic_latin-regular.ttf'); font-weight: 400; }
+  @font-face { font-family: 'Cairo'; src: url('fonts/cairo-v31-arabic_latin-600.ttf'); font-weight: 600; }
+  @font-face { font-family: 'Cairo'; src: url('fonts/cairo-v31-arabic_latin-700.ttf'); font-weight: 700; }
+  @font-face { font-family: 'Cairo'; src: url('fonts/cairo-v31-arabic_latin-800.ttf'); font-weight: 800; }
+  @font-face { font-family: 'Cairo'; src: url('fonts/cairo-v31-arabic_latin-900.ttf'); font-weight: 900; }
+  @font-face { font-family: 'IBM Plex Sans Arabic'; src: url('fonts/ibm-plex-sans-arabic-v15-arabic_latin-regular.ttf'); font-weight: 400; }
+  @font-face { font-family: 'IBM Plex Sans Arabic'; src: url('fonts/ibm-plex-sans-arabic-v15-arabic_latin-500.ttf'); font-weight: 500; }
+  @font-face { font-family: 'IBM Plex Sans Arabic'; src: url('fonts/ibm-plex-sans-arabic-v15-arabic_latin-600.ttf'); font-weight: 600; }
+  @font-face { font-family: 'IBM Plex Sans Arabic'; src: url('fonts/ibm-plex-sans-arabic-v15-arabic_latin-700.ttf'); font-weight: 700; }
+
+  :root {
+    --bg: #F5F2EC;
+    --surface: #FFFFFF;
+    --border: #E7E1D6;
+    --navy: #1B2A4A;
+    --navy-tint: #253A63;
+    --navy-soft: rgba(27, 42, 74, 0.08);
+    --terracotta: #C96A3E;
+    --terracotta-soft: rgba(201, 106, 62, 0.1);
+    --mint: #4C8C6B;
+    --mint-soft: rgba(76, 140, 107, 0.1);
+    --rose: #C0503F;
+    --rose-soft: rgba(192, 80, 63, 0.1);
+    --text: #1E2430;
+    --text-muted: #6B7280;
+    --text-faint: #A39E90;
+    --shadow: 0 1px 2px rgba(27, 42, 74, 0.04);
+    --shadow-md: 0 8px 32px rgba(27, 42, 74, 0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'IBM Plex Sans Arabic', sans-serif; background: var(--bg); }
+
+  .slide {
+    width: 1920px; height: 1080px;
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(900px 600px at 95% 0%, var(--terracotta-soft), transparent 55%),
+      radial-gradient(800px 500px at 5% 100%, var(--navy-soft), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    display: flex; flex-direction: column;
+  }
+  .slide::after {
+    content: ''; position: absolute; top: 0; right: 0; left: 0; height: 8px;
+    background: linear-gradient(90deg, var(--navy) 0%, var(--navy-tint) 60%, var(--terracotta) 100%);
+    z-index: 10;
+  }
+  .slide.cover::after { height: 0; }
+
+  .chrome { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  .brand-corner {
+    position: absolute; top: 48px; right: 64px;
+    display: flex; align-items: center; gap: 16px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900; font-size: 30px; color: var(--navy);
+  }
+  .brand-corner .dot {
+    width: 44px; height: 44px; border-radius: 13px;
+    background: linear-gradient(135deg, var(--terracotta) 0%, #B85A32 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 22px; font-weight: 900;
+    box-shadow: 0 4px 14px rgba(201, 106, 62, 0.35);
+  }
+  .brand-corner .ai { color: var(--terracotta); }
+  .page-num {
+    position: absolute; bottom: 40px; left: 64px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 24px; color: var(--text-faint); font-weight: 700;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .page-num::after { content: ''; width: 54px; height: 3px; border-radius: 2px; background: var(--terracotta); }
+  .footer-url {
+    position: absolute; bottom: 40px; right: 64px;
+    font-size: 22px; color: var(--text-faint); font-weight: 600; direction: ltr;
+  }
+
+  .content { position: relative; z-index: 2; flex: 1; padding: 130px 110px 110px; display: flex; flex-direction: column; }
+
+  .kicker {
+    display: inline-flex; align-items: center; gap: 14px;
+    color: var(--terracotta); font-family: 'Cairo', sans-serif;
+    font-weight: 700; font-size: 28px; margin-bottom: 6px;
+  }
+  .kicker::before { content: ''; width: 34px; height: 4px; border-radius: 3px; background: var(--terracotta); }
+  h1.slide-title {
+    font-family: 'Cairo', sans-serif;
+    font-size: 76px; font-weight: 900; line-height: 1.25; margin-bottom: 14px;
+    color: var(--navy);
+  }
+  .slide-sub { font-size: 30px; color: var(--text-muted); line-height: 1.7; max-width: 1500px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Slide 1: cover ── */
+  .cover {
+    background:
+      radial-gradient(ellipse 1200px 700px at 50% 30%, var(--navy-soft), transparent 70%),
+      radial-gradient(ellipse 800px 500px at 80% 80%, var(--terracotta-soft), transparent 60%),
+      var(--bg);
+  }
+  .cover .content { align-items: center; justify-content: center; text-align: center; padding-top: 60px; }
+  .cover-logo {
+    width: 190px; height: 190px; border-radius: 52px;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-tint) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cairo', sans-serif;
+    font-size: 88px; font-weight: 900; color: white;
+    box-shadow: var(--shadow-md), inset 0 2px 0 rgba(255,255,255,.2);
+    margin-bottom: 52px; position: relative;
+  }
+  .cover-logo::after {
+    content: ''; position: absolute; inset: -20px; border-radius: 60px;
+    background: radial-gradient(circle, var(--terracotta-soft) 0%, transparent 70%);
+    z-index: -1;
+  }
+  .cover h1 {
+    font-family: 'Cairo', sans-serif;
+    font-size: 150px; font-weight: 900; line-height: 1.15; color: var(--navy);
+  }
+  .cover h1 .ai { color: var(--terracotta); }
+  .cover .tagline { font-family: 'Cairo', sans-serif; font-size: 44px; color: var(--text); font-weight: 800; margin-top: 8px; }
+  .cover .tagline2 { font-size: 32px; color: var(--text-muted); margin-top: 18px; max-width: 1200px; line-height: 1.8; }
+  .cover .pill-row { display: flex; gap: 22px; margin-top: 58px; }
+  .pill {
+    padding: 16px 38px; border-radius: 100px; font-family: 'Cairo', sans-serif;
+    font-size: 27px; font-weight: 700;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    box-shadow: var(--shadow);
+  }
+  .pill.accent { background: var(--terracotta-soft); border-color: rgba(201,106,62,.3); color: var(--terracotta); }
+  .pill.navy { background: var(--navy-soft); border-color: rgba(27,42,74,.15); color: var(--navy); }
+  .cover .event {
+    position: absolute; bottom: 44px; width: 100%; text-align: center;
+    font-size: 26px; color: var(--text-faint); font-weight: 600;
+  }
+
+  /* ── Slide 2: team ── */
+  .team-row { display: flex; gap: 44px; margin-top: 70px; }
+  .member { flex: 1; text-align: center; padding: 70px 30px 60px; position: relative; }
+  .member .avatar {
+    width: 168px; height: 168px; border-radius: 50%;
+    margin: 0 auto 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cairo', sans-serif;
+    font-size: 64px; font-weight: 900; color: white;
+    box-shadow: var(--shadow-md);
+  }
+  .member:nth-child(1) .avatar { background: linear-gradient(135deg, var(--terracotta), #B85A32); }
+  .member:nth-child(2) .avatar { background: linear-gradient(135deg, var(--navy), var(--navy-tint)); }
+  .member:nth-child(3) .avatar { background: linear-gradient(135deg, var(--mint), #3A7358); }
+  .member .name { font-family: 'Cairo', sans-serif; font-size: 44px; font-weight: 900; margin-bottom: 10px; color: var(--navy); }
+  .member .role { font-size: 27px; color: var(--text-muted); font-weight: 500; }
+  .member .topline { position: absolute; top: 0; right: 60px; left: 60px; height: 5px; border-radius: 0 0 6px 6px; }
+  .member:nth-child(1) .topline { background: var(--terracotta); }
+  .member:nth-child(2) .topline { background: var(--navy); }
+  .member:nth-child(3) .topline { background: var(--mint); }
+
+  /* ── Slide 3: contents ── */
+  #s3 .content { padding-top: 110px; }
+  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 40px; margin-top: 44px; }
+  .toc-item {
+    display: flex; align-items: center; gap: 26px;
+    padding: 19px 34px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .toc-item .n {
+    min-width: 62px; height: 62px; border-radius: 18px;
+    background: var(--navy-soft); border: 1px solid rgba(27,42,74,.12);
+    color: var(--navy); font-family: 'Cairo', sans-serif;
+    font-weight: 900; font-size: 30px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .toc-item .t { font-family: 'Cairo', sans-serif; font-size: 31px; font-weight: 700; color: var(--navy); }
+  .toc-item .d { font-size: 23px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+
+  /* ── Slide 4: problem/solution ── */
+  .ps-row { display: flex; gap: 44px; margin-top: 52px; flex: 1; }
+  .ps-col { flex: 1; padding: 48px 52px; display: flex; flex-direction: column; }
+  .ps-col .head { display: flex; align-items: center; gap: 20px; margin-bottom: 34px; }
+  .ps-col .head .ic {
+    width: 74px; height: 74px; border-radius: 22px; font-size: 38px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ps-col.problem .head .ic { background: var(--rose-soft); border: 1px solid rgba(192,80,63,.25); }
+  .ps-col.solution .head .ic { background: var(--mint-soft); border: 1px solid rgba(76,140,107,.25); }
+  .ps-col .head h2 { font-family: 'Cairo', sans-serif; font-size: 46px; font-weight: 900; }
+  .ps-col.problem .head h2 { color: var(--rose); }
+  .ps-col.solution .head h2 { color: var(--mint); }
+  .ps-item { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 30px; }
+  .ps-item .b { min-width: 14px; height: 14px; border-radius: 50%; margin-top: 16px; }
+  .ps-col.problem .ps-item .b { background: var(--rose); }
+  .ps-col.solution .ps-item .b { background: var(--mint); }
+  .ps-item p { font-size: 29px; line-height: 1.75; color: var(--text); }
+  .ps-item p b { color: var(--terracotta); font-weight: 700; }
+
+  /* ── Slide 5: data ── */
+  .data-grid { display: flex; gap: 40px; margin-top: 54px; }
+  .data-card { flex: 1; padding: 46px 44px; position: relative; }
+  .data-card .ic {
+    width: 88px; height: 88px; border-radius: 26px; font-size: 44px;
+    background: var(--navy-soft); border: 1px solid rgba(27,42,74,.1);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 30px;
+  }
+  .data-card h3 { font-family: 'Cairo', sans-serif; font-size: 36px; font-weight: 900; margin-bottom: 14px; color: var(--navy); }
+  .data-card p { font-size: 26px; color: var(--text-muted); line-height: 1.75; }
+  .data-card .tag {
+    position: absolute; top: 42px; left: 40px; direction: ltr;
+    font-size: 21px; font-weight: 600; color: var(--navy);
+    background: var(--navy-soft); border: 1px solid rgba(27,42,74,.12);
+    padding: 6px 18px; border-radius: 100px;
+  }
+  .data-store {
+    margin-top: 40px; padding: 34px 46px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font-size: 27px; line-height: 1.8; color: var(--text);
+  }
+  .data-store b { color: var(--navy); font-family: 'Cairo', sans-serif; }
+
+  /* ── Slide 6: tech ── */
+  .tech-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; margin-top: 54px; }
+  .tech-card { padding: 40px 42px; display: flex; flex-direction: column; gap: 14px; }
+  .tech-card .row1 { display: flex; align-items: center; gap: 20px; }
+  .tech-card .ic {
+    width: 70px; height: 70px; border-radius: 20px; font-size: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--navy-soft); border: 1px solid rgba(27,42,74,.1);
+  }
+  .tech-card h3 { font-family: 'Cairo', sans-serif; font-size: 32px; font-weight: 800; color: var(--navy); direction: ltr; text-align: right; }
+  .tech-card p { font-size: 25px; color: var(--text-muted); line-height: 1.7; }
+
+  /* ── Slide 7: idea ── */
+  .modes-row { display: flex; gap: 44px; margin-top: 48px; flex: 1; }
+  .mode-card { flex: 1; padding: 44px 50px; position: relative; overflow: hidden; }
+  .mode-card.personal { border-color: rgba(201,106,62,.25); }
+  .mode-card.business { border-color: rgba(27,42,74,.2); }
+  .mode-card .mhead { display: flex; align-items: center; gap: 22px; margin-bottom: 30px; }
+  .mode-card .mic { width: 78px; height: 78px; border-radius: 24px; font-size: 40px; display: flex; align-items: center; justify-content: center; }
+  .mode-card.personal .mic { background: var(--terracotta-soft); border: 1px solid rgba(201,106,62,.25); }
+  .mode-card.business .mic { background: var(--navy-soft); border: 1px solid rgba(27,42,74,.15); }
+  .mode-card h3 { font-family: 'Cairo', sans-serif; font-size: 42px; font-weight: 900; }
+  .mode-card.personal h3 { color: var(--terracotta); }
+  .mode-card.business h3 { color: var(--navy); }
+  .mode-card ul { list-style: none; }
+  .mode-card li { font-size: 27px; line-height: 1.6; padding: 13px 0; display: flex; gap: 16px; align-items: flex-start; color: var(--text); }
+  .mode-card li::before { content: '✦'; font-size: 22px; margin-top: 4px; }
+  .mode-card.personal li::before { color: var(--terracotta); }
+  .mode-card.business li::before { color: var(--navy); }
+
+  /* ── Slide 8: flow ── */
+  .flow-wrap { margin-top: 64px; display: flex; flex-direction: column; gap: 0; flex: 1; justify-content: center; }
+  .flow-steps { display: flex; align-items: stretch; gap: 0; }
+  .flow-step { flex: 1; text-align: center; position: relative; padding: 0 12px; }
+  .flow-step .bubble {
+    width: 118px; height: 118px; border-radius: 34px; margin: 0 auto 26px;
+    display: flex; align-items: center; justify-content: center; font-size: 52px;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+  }
+  .flow-step h4 { font-family: 'Cairo', sans-serif; font-size: 30px; font-weight: 900; margin-bottom: 10px; color: var(--navy); }
+  .flow-step p { font-size: 24px; color: var(--text-muted); line-height: 1.65; }
+  .flow-arrow { display: flex; align-items: center; padding-bottom: 130px; color: var(--terracotta); font-size: 44px; font-weight: 900; }
+  .flow-note {
+    margin-top: 64px; padding: 32px 46px; border-radius: 20px;
+    background: var(--mint-soft); border: 1px solid rgba(76,140,107,.2);
+    font-size: 27px; line-height: 1.8;
+  }
+  .flow-note b { color: var(--mint); font-family: 'Cairo', sans-serif; }
+
+  /* ── Slide 9: alignment ── */
+  .align-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; margin-top: 54px; }
+  .align-card { padding: 42px 46px; display: flex; gap: 28px; align-items: flex-start; }
+  .align-card .ic {
+    min-width: 84px; height: 84px; border-radius: 24px; font-size: 40px;
+    background: var(--navy-soft); border: 1px solid rgba(27,42,74,.1);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .align-card h3 { font-family: 'Cairo', sans-serif; font-size: 32px; font-weight: 800; margin-bottom: 10px; color: var(--navy); }
+  .align-card p { font-size: 25px; color: var(--text-muted); line-height: 1.7; }
+  .align-banner {
+    margin-top: 38px; text-align: center; padding: 30px;
+    border-radius: 20px; background: var(--terracotta-soft); border: 1px solid rgba(201,106,62,.2);
+    font-family: 'Cairo', sans-serif; font-size: 29px; font-weight: 700; line-height: 1.7; color: var(--text);
+  }
+  .align-banner b { color: var(--terracotta); }
+
+  /* ── Slide 10: summary ── */
+  .sum-row { display: flex; gap: 60px; margin-top: 40px; flex: 1; align-items: center; }
+  .sum-right { flex: 1.25; }
+  .sum-right p.lead { font-size: 31px; line-height: 1.9; color: var(--text); margin-bottom: 40px; }
+  .sum-right p.lead b { color: var(--navy); font-family: 'Cairo', sans-serif; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px; }
+  .stat { padding: 28px 34px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .stat .v { font-family: 'Cairo', sans-serif; font-size: 42px; font-weight: 900; color: var(--terracotta); direction: ltr; text-align: right; }
+  .stat .k { font-size: 24px; color: var(--text-muted); font-weight: 500; margin-top: 4px; }
+  .phone-shot {
+    border-radius: 44px; border: 8px solid var(--surface);
+    box-shadow: var(--shadow-md), 0 0 0 1px var(--border);
+    overflow: hidden; background: var(--surface);
+  }
+  .phone-shot img { display: block; width: 100%; }
+  .sum-left { flex: .85; display: flex; justify-content: center; gap: 34px; align-items: center; }
+  .sum-left .phone-shot { width: 395px; }
+  .sum-left .phone-shot.small { width: 345px; opacity: .95; }
+
+  /* ── Slide 11: testing ── */
+  .test-url {
+    display: inline-flex; align-items: center; gap: 20px; margin-top: 40px;
+    padding: 22px 44px; border-radius: 100px; direction: ltr;
+    background: var(--navy); font-family: 'Cairo', sans-serif;
+    font-size: 34px; font-weight: 700; color: white;
+    align-self: flex-start; box-shadow: var(--shadow-md);
+  }
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px 34px; margin-top: 44px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 22px;
+    padding: 28px 34px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .check-item .ck {
+    min-width: 52px; height: 52px; border-radius: 16px; margin-top: 2px;
+    background: var(--mint-soft); border: 1px solid rgba(76,140,107,.25);
+    color: var(--mint); font-size: 28px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .check-item .t { font-family: 'Cairo', sans-serif; font-size: 28px; font-weight: 700; color: var(--navy); }
+  .check-item .d { font-size: 23px; color: var(--text-muted); font-weight: 500; margin-top: 3px; }
+
+  /* ── Slide 12: demo ── */
+  .demo .content { padding: 110px 90px 100px; }
+  .demo-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 44px; }
+  .demo-qr { display: flex; align-items: center; gap: 30px; }
+  .demo-qr .qr-box { background: white; padding: 14px; border-radius: 22px; box-shadow: var(--shadow-md); border: 1px solid var(--border); }
+  .demo-qr img { width: 168px; height: 168px; display: block; }
+  .demo-qr .lines .l1 { font-family: 'Cairo', sans-serif; font-size: 30px; font-weight: 800; color: var(--navy); direction: ltr; text-align: right; }
+  .demo-qr .lines .l2 { font-size: 24px; color: var(--text-muted); font-weight: 500; margin-top: 6px; }
+  .shots-row { display: flex; gap: 30px; justify-content: center; align-items: center; flex: 1; }
+  .shots-row .shot { width: 322px; }
+  .shot {
+    border-radius: 30px; border: 6px solid var(--surface);
+    overflow: hidden; box-shadow: var(--shadow-md), 0 0 0 1px var(--border);
+    background: var(--surface); position: relative;
+  }
+  .shot img { display: block; width: 100%; }
+  .shot .cap {
+    position: absolute; bottom: 0; right: 0; left: 0;
+    background: linear-gradient(transparent, rgba(27,42,74,.88) 55%);
+    padding: 44px 16px 14px; text-align: center;
+    font-family: 'Cairo', sans-serif; font-size: 22px; font-weight: 700; color: white;
+  }
+
+  /* ── Slide 13: challenges/future ── */
+  .cf-row { display: flex; gap: 44px; margin-top: 52px; flex: 1; }
+  .cf-col { flex: 1; padding: 46px 50px; }
+  .cf-col .head { display: flex; align-items: center; gap: 20px; margin-bottom: 32px; }
+  .cf-col .head .ic { width: 72px; height: 72px; border-radius: 22px; font-size: 36px; display: flex; align-items: center; justify-content: center; }
+  .cf-col.ch .head .ic { background: var(--rose-soft); border: 1px solid rgba(192,80,63,.25); }
+  .cf-col.fu .head .ic { background: var(--navy-soft); border: 1px solid rgba(27,42,74,.15); }
+  .cf-col .head h2 { font-family: 'Cairo', sans-serif; font-size: 44px; font-weight: 900; }
+  .cf-col.ch .head h2 { color: var(--rose); }
+  .cf-col.fu .head h2 { color: var(--navy); }
+  .cf-item { display: flex; gap: 20px; margin-bottom: 26px; align-items: flex-start; }
+  .cf-item .b { min-width: 13px; height: 13px; border-radius: 50%; margin-top: 17px; }
+  .cf-col.ch .cf-item .b { background: var(--rose); }
+  .cf-col.fu .cf-item .b { background: var(--navy); }
+  .cf-item p { font-size: 28px; line-height: 1.75; }
+  .cf-item p span.note { color: var(--text-muted); }
+
+  /* ── Slide 14: thanks ── */
+  .thanks .content { align-items: center; justify-content: center; text-align: center; }
+  .thanks h1 { font-family: 'Cairo', sans-serif; font-size: 170px; font-weight: 900; line-height: 1.2; color: var(--navy); }
+  .thanks .sub { font-size: 40px; color: var(--text-muted); margin-top: 10px; font-weight: 500; }
+  .thanks .team-line { font-size: 32px; margin-top: 44px; color: var(--text); font-weight: 600; }
+  .thanks .team-line span { color: var(--terracotta); margin: 0 10px; }
+  .thanks .qr-wrap { display: flex; align-items: center; gap: 28px; margin-top: 56px; }
+  .thanks .qr-box { background: white; padding: 13px; border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-md); }
+  .thanks .qr-box img { width: 150px; height: 150px; display: block; }
+  .thanks .url { font-family: 'Cairo', sans-serif; font-size: 32px; font-weight: 800; color: var(--navy); direction: ltr; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 1 · الغلاف ═══════════ -->
+<section class="slide cover" id="s1">
+  <div class="content">
+    <div class="cover-logo">﷼</div>
+    <h1>ريـال <span class="ai">AI</span></h1>
+    <div class="tagline">ريالي — مساعدك المالي الذكي</div>
+    <div class="tagline2">تطبيق عربي يتتبّع مصاريفك بالصوت والصورة، ويحوّل إدارة أموالك إلى تجربة ممتعة وذكية</div>
+    <div class="pill-row">
+      <div class="pill accent">riyalai.up.railway.app</div>
+      <div class="pill navy">مدعوم بالذكاء الاصطناعي</div>
+      <div class="pill">PWA — جوال وويب</div>
+    </div>
+  </div>
+  <div class="event">عروض الطلاب | امد ٢٠٢٦</div>
+</section>
+
+<!-- ═══════════ 2 · أعضاء الفريق ═══════════ -->
+<section class="slide" id="s2">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">02</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">من نحن</div>
+    <h1 class="slide-title">أعضاء الفريق</h1>
+    <p class="slide-sub">فريق واحد، هدف واحد: وعي مالي أذكى للجميع</p>
+    <div class="team-row">
+      <div class="member card"><div class="topline"></div><div class="avatar">ج</div><div class="name">جنان الغطيمل</div><div class="role">تطوير التطبيق والذكاء الاصطناعي</div></div>
+      <div class="member card"><div class="topline"></div><div class="avatar">هـ</div><div class="name">الهنوف الجمعان</div><div class="role">تجربة المستخدم والتصميم</div></div>
+      <div class="member card"><div class="topline"></div><div class="avatar">س</div><div class="name">سارة الزهراني</div><div class="role">البيانات والاختبار</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 3 · المحتويات ═══════════ -->
+<section class="slide" id="s3">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">03</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">جدول العرض</div>
+    <h1 class="slide-title">المحتويات</h1>
+    <div class="toc-grid">
+      <div class="toc-item"><div class="n">٠١</div><div><div class="t">المشكلة والحل</div><div class="d">لماذا ريالي؟</div></div></div>
+      <div class="toc-item"><div class="n">٠٢</div><div><div class="t">البيانات</div><div class="d">صوت، إيصالات OCR، تصنيف شخصي / تجاري</div></div></div>
+      <div class="toc-item"><div class="n">٠٣</div><div><div class="t">التقنيات</div><div class="d">React، FastAPI، OpenRouter، Gemini</div></div></div>
+      <div class="toc-item"><div class="n">٠٤</div><div><div class="t">وصف الفكرة</div><div class="d">تطبيق واحد — وضعان</div></div></div>
+      <div class="toc-item"><div class="n">٠٥</div><div><div class="t">تدفق البيانات</div><div class="d">من الإدخال إلى اللوحات</div></div></div>
+      <div class="toc-item"><div class="n">٠٦</div><div><div class="t">مواءمة الفكرة</div><div class="d">أين يعمل الذكاء الاصطناعي؟</div></div></div>
+      <div class="toc-item"><div class="n">٠٧</div><div><div class="t">الملخص والاختبار</div><div class="d">نظرة شاملة + ما تم التحقق منه</div></div></div>
+      <div class="toc-item"><div class="n">٠٨</div><div><div class="t">العرض التوضيحي</div><div class="d">التطبيق مباشر + التحديات والمستقبل</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 4 · المشكلة والحل ═══════════ -->
+<section class="slide" id="s4">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">04</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">لماذا ريالي؟</div>
+    <h1 class="slide-title">المشكلة والحل</h1>
+    <div class="ps-row">
+      <div class="ps-col problem card">
+        <div class="head"><div class="ic">⚠</div><h2>المشكلة</h2></div>
+        <div class="ps-item"><div class="b"></div><p>أغلب الناس <b>لا يتابعون مصاريفهم يومياً</b> — التسجيل اليدوي ممل ويُنسى بسرعة</p></div>
+        <div class="ps-item"><div class="b"></div><p>صاحبات المشاريع الصغيرة يحتجن ربط <b>الإيراد بالمصروف</b> ومعرفة الربح والضريبة بدون تعقيد</p></div>
+        <div class="ps-item"><div class="b"></div><p>تطبيقات المصاريف الحالية <b>غير عربية</b> أو تفصل بين الاستخدام الشخصي والتجاري في تطبيقين</p></div>
+      </div>
+      <div class="ps-col solution card">
+        <div class="head"><div class="ic">✓</div><h2>الحل — ريالي</h2></div>
+        <div class="ps-item"><div class="b"></div><p>تسجيل <b>بالصوت أو بصورة الإيصال</b> — الذكاء الاصطناعي يستخرج المبلغ والفئة تلقائياً</p></div>
+        <div class="ps-item"><div class="b"></div><p><b>وضعان في تطبيق واحد:</b> أفراد (تحفيز وتلعيب) وأعمال (ربح وضريبة وهدر)</p></div>
+        <div class="ps-item"><div class="b"></div><p>واجهة <b>عربية RTL</b> بالكامل، يعمل كتطبيق PWA على الجوال والويب</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 5 · البيانات ═══════════ -->
+<section class="slide" id="s5">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">05</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">مصادر الإدخال والمعالجة</div>
+    <h1 class="slide-title">البيانات</h1>
+    <div class="data-grid">
+      <div class="data-card card">
+        <div class="tag">/voice/process</div>
+        <div class="ic">🎙</div>
+        <h3>الصوت العربي</h3>
+        <p>المستخدم يقول: «قهوة ١٥ ريال» — يُفرَّغ الصوت ويُستخرج المبلغ والفئة تلقائياً، مع دعم اللهجة السعودية</p>
+      </div>
+      <div class="data-card card">
+        <div class="tag">/receipt/process</div>
+        <div class="ic">🧾</div>
+        <h3>إيصالات OCR</h3>
+        <p>صورة الإيصال تُقرأ عبر Gemini Vision — استخراج المتجر والمبلغ والتاريخ والفئة من الصورة مباشرة</p>
+      </div>
+      <div class="data-card card">
+        <div class="tag">mode: personal | business</div>
+        <div class="ic">🏷</div>
+        <h3>تصنيف شخصي / تجاري</h3>
+        <p>كل عملية تُصنّف حسب الوضع النشط — بيانات الأفراد معزولة تماماً عن بيانات الأعمال لنفس المستخدم</p>
+      </div>
+    </div>
+    <div class="data-store">
+      <b>التخزين — SQLite:</b> مصاريف (مبلغ، فئة، تاريخ، نوع الإدخال، الوضع) • ملفات المستخدمين (XP، مستوى، سلسلة يومية) • تحديات وصداقات وتوكنات استعادة كلمة المرور
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 6 · التقنيات ═══════════ -->
+<section class="slide" id="s6">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">06</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">البنية التقنية</div>
+    <h1 class="slide-title">التقنيات المستخدمة</h1>
+    <div class="tech-grid">
+      <div class="tech-card card"><div class="row1"><div class="ic">⚛</div><h3>React — PWA</h3></div><p>واجهة عربية RTL كاملة: الرئيسية، الصوت، التحديات، الأصدقاء، لوحة الأعمال</p></div>
+      <div class="tech-card card"><div class="row1"><div class="ic">⚡</div><h3>FastAPI + SQLite</h3></div><p>API موحّد يخدم الواجهة ويخزّن جميع البيانات — سريع وخفيف</p></div>
+      <div class="tech-card card"><div class="row1"><div class="ic">🧠</div><h3>OpenRouter — Claude</h3></div><p>توليد تحديات أسبوعية مخصّصة باللهجة السعودية من أنماط الإنفاق</p></div>
+      <div class="tech-card card"><div class="row1"><div class="ic">👁</div><h3>Gemini Vision</h3></div><p>قراءة الإيصالات بالصورة (OCR) وتفريغ التسجيلات الصوتية العربية</p></div>
+      <div class="tech-card card"><div class="row1"><div class="ic">🐳</div><h3>Docker → Railway</h3></div><p>حاوية واحدة تجمع الـ API وبناء React — منشور ويعمل على الإنترنت</p></div>
+      <div class="tech-card card"><div class="row1"><div class="ic">🔐</div><h3>JWT + SMTP</h3></div><p>مصادقة آمنة بالتوكن، واستعادة كلمة المرور عبر البريد الإلكتروني</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 7 · وصف الفكرة ═══════════ -->
+<section class="slide" id="s7">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">07</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">وصف الفكرة</div>
+    <h1 class="slide-title">تطبيق واحد — وضعان</h1>
+    <p class="slide-sub">PWA عربي لتتبع المصاريف بالذكاء الاصطناعي، مع تبديل فوري بين الوضعين في أي وقت</p>
+    <div class="modes-row">
+      <div class="mode-card personal card">
+        <div class="mhead"><div class="mic">🎮</div><h3>وضع الأفراد</h3></div>
+        <ul>
+          <li>+٢٠ نقطة خبرة (XP) لكل مصروف تسجّله ومستويات تتصاعد</li>
+          <li>سلسلة يومية — مضاعف ×٢ من اليوم السابع</li>
+          <li>تحديات AI أسبوعية مخصّصة لأنماط إنفاقك</li>
+          <li>لوحة متصدرين وأصدقاء ومنافسة أسبوعية</li>
+          <li>«قصة أسبوعك» — ملخص أسبوعي قابل للمشاركة</li>
+        </ul>
+      </div>
+      <div class="mode-card business card">
+        <div class="mhead"><div class="mic">💼</div><h3>وضع الأعمال</h3></div>
+        <ul>
+          <li>لوحة ربح: إيراد − مصروف = صافي الربح لحظياً</li>
+          <li>مؤشر صحة المشروع وتقدير ضريبة القيمة المضافة</li>
+          <li>كاشف الهدر — ينبّهك للمصاريف غير الضرورية</li>
+          <li>«مشروعك بنظرة» — ملخص ذكي لوضع مشروعك</li>
+          <li>تسجيل الإيراد والمصروف بالصوت أو الصورة</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 8 · تدفق البيانات ═══════════ -->
+<section class="slide" id="s8">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">08</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">من الإدخال إلى القرار</div>
+    <h1 class="slide-title">تدفق البيانات</h1>
+    <div class="flow-wrap">
+      <div class="flow-steps">
+        <div class="flow-step"><div class="bubble">👤</div><h4>١ · التسجيل</h4><p>حساب جديد واختيار وضع أفراد أو أعمال</p></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step"><div class="bubble">🎙</div><h4>٢ · الإدخال</h4><p>صوت أو صورة إيصال أو إدخال يدوي</p></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step"><div class="bubble">🧠</div><h4>٣ · الذكاء الاصطناعي</h4><p>استخراج المبلغ والفئة عبر OpenRouter</p></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step"><div class="bubble">✓</div><h4>٤ · التأكيد والحفظ</h4><p>المستخدم يؤكد → يُحفظ في قاعدة البيانات</p></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step"><div class="bubble">📊</div><h4>٥ · اللوحات</h4><p>XP وتحديات ومتصدرين، أو لوحة ربح الأعمال</p></div>
+      </div>
+      <div class="flow-note">
+        <b>الخصوصية بالتصميم:</b> كل مصروف يُخزّن مع حقل <b>mode</b> — بيانات الوضع الشخصي معزولة تماماً عن بيانات الأعمال، وكل اللوحات تُعرض حسب الوضع النشط للمستخدم
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 9 · مواءمة الفكرة ═══════════ -->
+<section class="slide" id="s9">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">09</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">أين يعمل الذكاء الاصطناعي؟</div>
+    <h1 class="slide-title">مواءمة الفكرة</h1>
+    <div class="align-grid">
+      <div class="align-card card"><div class="ic">🎯</div><div><h3>تحديات مخصّصة</h3><p>Claude يولّد تحديات أسبوعية باللهجة السعودية من أنماط إنفاق كل مستخدم</p></div></div>
+      <div class="align-card card"><div class="ic">🗣</div><div><h3>فهم الصوت العربي</h3><p>Gemini يفهم الكلام المحكي ويحوّله لمصروف جاهز: مبلغ + فئة + وصف</p></div></div>
+      <div class="align-card card"><div class="ic">📸</div><div><h3>قراءة الإيصالات</h3><p>Gemini Vision يقرأ صورة الإيصال ويستخرج البيانات بدون أي كتابة يدوية</p></div></div>
+      <div class="align-card card"><div class="ic">📈</div><div><h3>تحليل الأعمال</h3><p>حساب الربح وتقدير الضريبة وكشف الهدر تلقائياً من بيانات المشروع</p></div></div>
+    </div>
+    <div class="align-banner">
+      ريالي يوظّف الذكاء الاصطناعي لهدف واحد: <b>رفع الوعي المالي</b> — للأفراد بالتحفيز، ولأصحاب المشاريع بالبصيرة
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 10 · ملخص ═══════════ -->
+<section class="slide" id="s10">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">10</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">نظرة شاملة على التطبيق</div>
+    <h1 class="slide-title">ملخص</h1>
+    <div class="sum-row">
+      <div class="sum-right">
+        <p class="lead">
+          ريالي تطبيق <b>منشور ويعمل الآن</b> — واجهة React PWA مع FastAPI وSQLite في حاوية Docker واحدة على Railway.
+          يدعم إدخال المصاريف بالصوت والإيصال واليدوي، بوضعين: أفراد وأعمال.
+        </p>
+        <div class="stat-grid">
+          <div class="stat"><div class="v">3</div><div class="k">طرق إدخال: صوت، إيصال، يدوي</div></div>
+          <div class="stat"><div class="v">2</div><div class="k">وضعان: أفراد وأعمال</div></div>
+          <div class="stat"><div class="v">20+</div><div class="k">نقطة API تخدم التطبيق</div></div>
+          <div class="stat"><div class="v">100%</div><div class="k">واجهة عربية RTL</div></div>
+        </div>
+      </div>
+      <div class="sum-left">
+        <div class="phone-shot"><img src="../screenshots/05-home.png"></div>
+        <div class="phone-shot small"><img src="../screenshots/01-voice.png"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 11 · الاختبار ═══════════ -->
+<section class="slide" id="s11">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">11</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">التحقق من الجاهزية</div>
+    <h1 class="slide-title">الاختبار</h1>
+    <div class="test-url">riyalai.up.railway.app ↗</div>
+    <div class="check-grid">
+      <div class="check-item"><div class="ck">✓</div><div><div class="t">منشور على الإنترنت</div><div class="d">Railway + Docker — يعمل على الجوال والويب</div></div></div>
+      <div class="check-item"><div class="ck">✓</div><div><div class="t">التسجيل الصوتي والإيصالات</div><div class="d">صوت عربي + OCR + إدخال يدوي — مختبر عبر API</div></div></div>
+      <div class="check-item"><div class="ck">✓</div><div><div class="t">وضع الأعمال</div><div class="d">لوحة الربح ومشروعك بنظرة وتقدير VAT</div></div></div>
+      <div class="check-item"><div class="ck">✓</div><div><div class="t">التلعيب</div><div class="d">XP ومستويات وتحديات AI ومتصدرين وأصدقاء</div></div></div>
+      <div class="check-item"><div class="ck">✓</div><div><div class="t">المصادقة الكاملة</div><div class="d">تسجيل، دخول، واستعادة كلمة المرور بالبريد</div></div></div>
+      <div class="check-item"><div class="ck">✓</div><div><div class="t">عزل البيانات</div><div class="d">فصل تام بين بيانات الوضع الشخصي والتجاري</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 12 · العرض التوضيحي ═══════════ -->
+<section class="slide demo" id="s12">
+  <div class="chrome">
+    <div class="page-num">12</div>
+  </div>
+  <div class="content">
+    <div class="demo-top">
+      <div>
+        <div class="kicker">التطبيق مباشر — جرّبوه الآن</div>
+        <h1 class="slide-title" style="margin-bottom:0">العرض التوضيحي</h1>
+      </div>
+      <div class="demo-qr">
+        <div class="lines">
+          <div class="l1">riyalai.up.railway.app</div>
+          <div class="l2">امسحوا الرمز لفتح التطبيق</div>
+        </div>
+        <div class="qr-box"><img src="assets/qr.png"></div>
+      </div>
+    </div>
+    <div class="shots-row">
+      <div class="shot"><img src="../screenshots/01-voice.png"><div class="cap">التسجيل الصوتي</div></div>
+      <div class="shot"><img src="../screenshots/03-receipt.png"><div class="cap">إيصال OCR</div></div>
+      <div class="shot"><img src="../screenshots/05-home.png"><div class="cap">الرئيسية</div></div>
+      <div class="shot"><img src="../screenshots/06-friends.png"><div class="cap">الأصدقاء</div></div>
+      <div class="shot"><img src="../screenshots/07-leaderboard.png"><div class="cap">المتصدرين</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 13 · التحديات والمستقبل ═══════════ -->
+<section class="slide" id="s13">
+  <div class="chrome">
+    <div class="brand-corner"><span>ريـال <span class="ai">AI</span></span><div class="dot">﷼</div></div>
+    <div class="page-num">13</div>
+    <div class="footer-url">riyalai.up.railway.app</div>
+  </div>
+  <div class="content">
+    <div class="kicker">بصراحة — وبطموح</div>
+    <h1 class="slide-title">التحديات والمستقبل</h1>
+    <div class="cf-row">
+      <div class="cf-col ch card">
+        <div class="head"><div class="ic">🧗</div><h2>التحديات</h2></div>
+        <div class="cf-item"><div class="b"></div><p>دقة التعرف على <b>اللهجات السعودية</b> في التسجيل الصوتي <span class="note">— نحتاج نماذج صوتية أدق</span></p></div>
+        <div class="cf-item"><div class="b"></div><p>تقدير VAT <span class="note">تقديري وليس استشارة ضريبية رسمية — يحتاج مراجعة قانونية</span></p></div>
+        <div class="cf-item"><div class="b"></div><p>كاشف الهدر يجمع بين <span class="note">قواعد ثابتة والذكاء الاصطناعي حسب توفر المفتاح</span></p></div>
+      </div>
+      <div class="cf-col fu card">
+        <div class="head"><div class="ic">🚀</div><h2>الخطة المستقبلية</h2></div>
+        <div class="cf-item"><div class="b"></div><p>إشعارات ذكية عند <b>تجاوز الميزانية</b> أو اقتراب التحدي من الانتهاء</p></div>
+        <div class="cf-item"><div class="b"></div><p>تحليلات أعمق مع <b>رسوم بيانية تفاعلية</b> وتقارير شهرية</p></div>
+        <div class="cf-item"><div class="b"></div><p>دعم <b>حسابات أعمال متعددة</b> لكل مستخدم، وربط بنكي مستقبلاً</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 14 · شكراً ═══════════ -->
+<section class="slide cover thanks" id="s14">
+  <div class="content">
+    <div class="cover-logo" style="width:150px;height:150px;border-radius:42px;font-size:74px;margin-bottom:40px">﷼</div>
+    <h1>شكراً لكم</h1>
+    <div class="sub">ونسعد بأسئلتكم</div>
+    <div class="team-line">جنان الغطيمل <span>•</span> الهنوف الجمعان <span>•</span> سارة الزهراني</div>
+    <div class="qr-wrap">
+      <div class="qr-box"><img src="assets/qr.png"></div>
+      <div class="url">riyalai.up.railway.app</div>
+    </div>
+  </div>
+  <div class="event">ريـال AI — ريالي | عروض الطلاب | امد ٢٠٢٦</div>
+</section>
+
+</body>
+</html>
