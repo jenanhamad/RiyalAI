@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { formatRiyal, getGreeting } from '../utils/format';
 import { getCategoryMeta } from '../utils/categories';
 import ModeSwitcher from './ModeSwitcher';
+import BrandLogo from './BrandLogo';
 import { useMode } from '../context/ModeContext';
 
 const severityLabel = {
@@ -69,9 +70,12 @@ const BusinessHome = ({ user, onSignOut }) => {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="header-bar">
-        <div>
-          <p className="tagline">ريالي أعمال</p>
-          <h1 className="page-title">{getGreeting()}، {user.username}</h1>
+        <div className="brand-header">
+          <BrandLogo compact />
+          <div>
+            <p className="tagline">ريالي أعمال</p>
+            <h1 className="page-title">{getGreeting()}، {user.username}</h1>
+          </div>
         </div>
         <button type="button" className="sign-out-btn" onClick={onSignOut}>خروج</button>
       </div>

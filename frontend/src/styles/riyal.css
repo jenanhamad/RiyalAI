@@ -177,6 +177,29 @@ body::before {
   letter-spacing: 0.05em;
 }
 
+.brand-logo {
+  display: block;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto -18px;
+  object-fit: contain;
+  border-radius: 28px;
+}
+
+.brand-logo-compact {
+  width: 72px;
+  height: 72px;
+  margin: -10px -10px -10px 0;
+  flex: 0 0 auto;
+  border-radius: 16px;
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Glass card */
 .glass-card {
   background: var(--surface);
@@ -1133,13 +1156,6 @@ body::before {
     radial-gradient(ellipse at top, var(--navy-soft), transparent 60%),
     radial-gradient(ellipse at bottom, var(--terracotta-soft), transparent 50%),
     var(--bg);
-}
-
-.auth-logo h1 {
-  font-family: var(--font-heading);
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: var(--ink);
 }
 
 .auth-form {

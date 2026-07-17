@@ -5,6 +5,7 @@ import { formatRiyal, formatXp, getGreeting } from '../utils/format';
 import { getCategoryMeta } from '../utils/categories';
 import ProgressRing from './ui/ProgressRing';
 import ModeSwitcher from './ModeSwitcher';
+import BrandLogo from './BrandLogo';
 import { useMode } from '../context/ModeContext';
 
 const Home = ({ user, onSignOut }) => {
@@ -61,10 +62,13 @@ const Home = ({ user, onSignOut }) => {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="header-bar">
-        <div>
+        <div className="brand-header">
+          <BrandLogo compact />
+          <div>
           <p className="tagline">ريالي · ryialAI</p>
           <p className="text-secondary" style={{ fontSize: '0.8rem', marginBottom: 4 }}>مالك، في يدك</p>
           <h1 className="page-title">{getGreeting()}، {user.username}</h1>
+          </div>
         </div>
         <button type="button" className="sign-out-btn" onClick={onSignOut}>خروج</button>
       </div>

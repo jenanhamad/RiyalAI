@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/localAuth';
+import BrandLogo from './BrandLogo';
 
 const ResetPassword = ({ onAuthenticated }) => {
   const [searchParams] = useSearchParams();
@@ -37,7 +38,7 @@ const ResetPassword = ({ onAuthenticated }) => {
     return (
       <div className="auth-screen">
         <div className="auth-logo">
-          <h1>ريالي</h1>
+          <BrandLogo />
           <p className="tagline">رابط غير صالح</p>
         </div>
         <div className="glass-card auth-form">
@@ -55,7 +56,7 @@ const ResetPassword = ({ onAuthenticated }) => {
   return (
     <div className="auth-screen">
       <div className="auth-logo">
-        <h1>ريالي</h1>
+        <BrandLogo />
         <p className="tagline">كلمة مرور جديدة</p>
       </div>
 

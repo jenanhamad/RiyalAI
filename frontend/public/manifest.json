@@ -1,7 +1,14 @@
 {
   "short_name": "ريالي",
   "name": "ريالي — ryialAI",
-  "icons": [],
+  "icons": [
+    {
+      "src": "riyal-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
   "start_url": ".",
   "display": "standalone",
   "orientation": "portrait",

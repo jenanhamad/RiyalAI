@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { localLogin, localRegister, forgotPassword } from '../services/localAuth';
+import BrandLogo from './BrandLogo';
 
 const LocalAuth = ({ onAuthenticated }) => {
   const [mode, setMode] = useState('login');
@@ -47,7 +48,7 @@ const LocalAuth = ({ onAuthenticated }) => {
   return (
     <div className="auth-screen">
       <div className="auth-logo">
-        <h1>ريالي</h1>
+        <BrandLogo />
         <p className="tagline">مالك، في يدك</p>
         <p className="text-secondary" style={{ marginTop: 8, fontSize: '0.85rem' }}>
           أفراد أو أعمال — نفس التطبيق

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useVoiceExpense } from '../hooks/useVoiceExpense';
 import VoiceConfirmSheet from './VoiceConfirmSheet';
 import ModeSwitcher from './ModeSwitcher';
+import BrandLogo from './BrandLogo';
 import { api } from '../services/api';
 import { formatRiyal, getGreeting } from '../utils/format';
 import { getCategoryMeta } from '../utils/categories';
@@ -190,9 +191,12 @@ const VoiceScreen = ({ user }) => {
   return (
     <div className="page voice-screen voice-home">
       <div className="voice-home-header">
-        <div>
-          <p className="tagline">{isBusiness ? 'ريالي أعمال' : 'ريالي · ryialAI'}</p>
-          <h1 className="page-title">{getGreeting()}، {user?.username || 'صديقي'}</h1>
+        <div className="brand-header">
+          <BrandLogo compact />
+          <div>
+            <p className="tagline">{isBusiness ? 'ريالي أعمال' : 'ريالي · ryialAI'}</p>
+            <h1 className="page-title">{getGreeting()}، {user?.username || 'صديقي'}</h1>
+          </div>
         </div>
       </div>
 
