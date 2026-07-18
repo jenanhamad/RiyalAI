@@ -28,16 +28,21 @@ AR_TO_BUSINESS = {
     "بضاعة": "Inventory",
     "مواد": "Inventory",
     "إيجار": "Rent",
+    "ايجار": "Rent",
     "ضريبة": "Tax",
+    "ضريبه": "Tax",
     "زكاة": "Tax",
     "معدات": "Equipment",
     "أجهزة": "Equipment",
+    "اجهزة": "Equipment",
     "عمولة": "Commissions",
     "عمولات": "Commissions",
     "فواتير": "Utilities",
+    "فاتورة": "Utilities",
     "مواصلات": "Transportation",
     "وقود": "Transportation",
     "أخرى": "Other",
+    "اخرى": "Other",
 }
 
 VAT_RATE = 0.15

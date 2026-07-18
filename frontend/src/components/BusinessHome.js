@@ -77,7 +77,10 @@ const BusinessHome = ({ user, onSignOut }) => {
             <h1 className="page-title">{getGreeting()}، {user.username}</h1>
           </div>
         </div>
-        <button type="button" className="sign-out-btn" onClick={onSignOut}>خروج</button>
+        <div className="biz-header-actions">
+          <Link to="/import-export" className="biz-import-export-btn" aria-label="استيراد وتصدير">⇄</Link>
+          <button type="button" className="sign-out-btn" onClick={onSignOut}>خروج</button>
+        </div>
       </div>
 
       <ModeSwitcher />

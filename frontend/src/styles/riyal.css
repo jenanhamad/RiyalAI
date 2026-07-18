@@ -1505,6 +1505,110 @@ body::before {
   font-family: var(--font-ar);
 }
 
+.biz-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.biz-import-export-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 1rem;
+  background: var(--surface);
+}
+
+.biz-import-export-btn:hover { border-color: var(--mode); color: var(--mode); }
+
+.upload-dropzone { text-align: center; }
+.upload-dropzone input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: var(--font-ar);
+  font-size: 0.85rem;
+}
+
+.mapping-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mapping-row:last-of-type { border-bottom: none; }
+
+.mapping-row label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.mapping-row select {
+  flex: 1;
+  max-width: 55%;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-ar);
+  font-size: 0.85rem;
+}
+
+.import-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.import-preview-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.import-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.import-preview-table th,
+.import-preview-table td {
+  padding: 8px 10px;
+  text-align: start;
+  border-bottom: 1px solid var(--border);
+}
+
+.import-preview-table th {
+  background: var(--mode-soft);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.import-preview-table tr:last-child td { border-bottom: none; }
+
+.import-summary-card { text-align: center; }
+.import-summary-card .biz-profit-grid { text-align: start; }
+
 .quick-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

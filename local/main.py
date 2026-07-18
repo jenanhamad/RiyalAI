@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 import asyncio
 from fastapi import FastAPI, Depends, HTTPException, Header, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -28,9 +28,11 @@ import auth
 import email_service
 import voice_service as voice
 import seed_sample_data as seed_demo
+import seed_demo_varied
 import friends as social
 import business as biz
 import story as weekly_story
+import import_export as impexp
 
 import openrouter as orouter
 
@@ -167,13 +169,20 @@ def health():
 def admin_seed_demo(
     username: str = "jinan",
     replace: bool = False,
+    variant: str = "basic",
     x_seed_secret: str | None = Header(None, alias="X-Seed-Secret"),
 ):
-    """One-shot demo seed on Railway volume — requires SEED_SECRET env var."""
+    """One-shot demo seed on Railway volume — requires SEED_SECRET env var.
+
+    variant=basic  → single user with sample expenses (seed_sample_data)
+    variant=varied → jinan/Sarah/Alhanouf with 3 business types (seed_demo_varied)
+    """
     expected = os.environ.get("SEED_SECRET", "").strip()
     if not expected or x_seed_secret != expected:
         raise HTTPException(403, "Forbidden")
     try:
+        if variant == "varied":
+            return seed_demo_varied.main()
         return seed_demo.seed(username, replace=replace)
     except Exception as e:
         raise HTTPException(500, str(e)) from e
@@ -297,6 +306,142 @@ def business_glance(user_id: str = Depends(get_user_id)):
     except Exception:
         ai_insight = None
     return biz.business_glance(user_id, ai_insight=ai_insight)
+
+
+class ImportConfirmBody(BaseModel):
+    importId: str
+    mapping: dict[str, str | None]
+    defaultEntryType: str = "expense"
+    defaultCategory: str = "Other"
+    skipDuplicates: bool = True
+
+
+@app.post("/business/import/preview")
+async def business_import_preview(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_user_id),
+):
+    """Parse an uploaded CSV/Excel file of past expenses and suggest a column mapping."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "الملف فاضي")
+    try:
+        columns, rows = await asyncio.to_thread(impexp.parse_upload, file.filename or "", content)
+    except impexp.ImportError_ as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(400, f"تعذّرت قراءة الملف — تأكد أنه CSV أو Excel صالح ({e})")
+    if not rows:
+        raise HTTPException(400, "لم يتم العثور على صفوف بيانات في الملف")
+
+    mapping = impexp.heuristic_mapping(columns)
+    mapping_source = "rules"
+    try:
+        ai_mapping = await asyncio.to_thread(orouter.suggest_import_mapping, columns, rows[:5])
+        for field, col in (ai_mapping or {}).items():
+            if field in mapping and col in columns:
+                mapping[field] = col
+        mapping_source = "ai"
+    except Exception:
+        pass
+
+    import_id = impexp.save_import_session(user_id, file.filename or "import", columns, rows)
+    return {
+        "importId": import_id,
+        "filename": file.filename,
+        "columns": columns,
+        "totalRows": len(rows),
+        "sampleRows": rows[:8],
+        "suggestedMapping": mapping,
+        "mappingSource": mapping_source,
+        "targetFields": impexp.TARGET_FIELDS,
+    }
+
+
+@app.post("/business/import/confirm")
+def business_import_confirm(body: ImportConfirmBody, user_id: str = Depends(get_user_id)):
+    """Apply a (user-confirmed) column mapping and bulk-insert the parsed rows."""
+    try:
+        session = impexp.load_import_session(user_id, body.importId)
+    except impexp.ImportError_ as e:
+        raise HTTPException(400, str(e))
+
+    if not body.mapping.get("amount"):
+        raise HTTPException(400, "يلزم تحديد عمود المبلغ على الأقل")
+
+    default_entry_type = body.defaultEntryType if body.defaultEntryType in ("expense", "income") else "expense"
+    normalized, row_errors = impexp.normalize_rows(
+        session["columns"], session["rows"], body.mapping,
+        default_entry_type=default_entry_type,
+        default_category=body.defaultCategory or "Other",
+    )
+
+    existing = impexp.existing_signatures(user_id, "business") if body.skipDuplicates else set()
+    now = datetime.utcnow().isoformat()
+    conn = get_connection()
+    imported = 0
+    skipped_dupes = 0
+    for row in normalized:
+        sig = impexp.row_signature(row)
+        if body.skipDuplicates and sig in existing:
+            skipped_dupes += 1
+            continue
+        existing.add(sig)
+        expense_id = str(uuid.uuid4())
+        conn.execute(
+            """INSERT INTO expenses (expense_id, user_id, merchant, amount, date, category,
+               payment_method, description, notes, status, has_receipt, is_recurring,
+               receipt_key, mode, entry_type, project_tag, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'processed', 0, 0, NULL, 'business', ?, ?, ?, ?)""",
+            (
+                expense_id, user_id, row["merchant"], row["amount"], row["date"], row["category"],
+                row["paymentMethod"], row["description"], f"مستورد من {session['filename']}",
+                row["entryType"], row["projectTag"], now, now,
+            ),
+        )
+        imported += 1
+    conn.commit()
+    conn.close()
+
+    impexp.delete_import_session(user_id, body.importId)
+
+    return {
+        "message": f"تم استيراد {imported} حركة بنجاح",
+        "imported": imported,
+        "skippedDuplicates": skipped_dupes,
+        "rowErrors": row_errors[:20],
+        "rowErrorCount": len(row_errors),
+        "dashboard": biz.dashboard(user_id),
+    }
+
+
+@app.get("/business/export/expenses")
+def business_export_expenses(
+    format: str = "xlsx",
+    days: int | None = None,
+    mode: str = "business",
+    user_id: str = Depends(get_user_id),
+):
+    """Export raw business expenses/income rows as CSV or Excel."""
+    fmt = "csv" if format == "csv" else "xlsx"
+    active_mode = mode if mode in ("personal", "business") else "business"
+    data, filename, content_type = impexp.export_expenses_file(user_id, mode=active_mode, fmt=fmt, days=days)
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/business/export/report")
+def business_export_report(days: int = 90, user_id: str = Depends(get_user_id)):
+    """Export a printable summary report (profit, VAT, categories, leaks) as Excel."""
+    data, filename, content_type = impexp.export_report_file(user_id, days=days)
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/story/weekly")

@@ -9,6 +9,7 @@ import Leaderboard from './components/Leaderboard';
 import Analytics from './components/Analytics';
 import WeeklyStory from './components/WeeklyStory';
 import BusinessGlance from './components/BusinessGlance';
+import BusinessImportExport from './components/BusinessImportExport';
 import VoiceScreen from './components/VoiceScreen';
 import LocalAuth from './components/LocalAuth';
 import ResetPassword from './components/ResetPassword';
@@ -64,6 +65,10 @@ function AppRoutes({ user, onSignOut, inviteNotice, setInviteNotice }) {
         <Route
           path="/glance"
           element={isBusiness ? <BusinessGlance /> : <Navigate to="/story" replace />}
+        />
+        <Route
+          path="/import-export"
+          element={isBusiness ? <BusinessImportExport /> : <Navigate to="/home" replace />}
         />
         <Route
           path="/analytics"

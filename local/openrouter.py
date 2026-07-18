@@ -278,6 +278,52 @@ def generate_weekly_story(summary_text):
     return json.loads(raw.strip())
 
 
+def suggest_import_mapping(columns, sample_rows):
+    """Ask the model to map spreadsheet columns to our expense fields.
+
+    columns: list[str] of source header names.
+    sample_rows: list[list[str]] — a few sample data rows (same order as columns).
+    Returns dict like {"merchant": "<column name>", "amount": "<column name>", ...}
+    with null for fields that have no matching column.
+    """
+    sample_lines = []
+    for row in sample_rows[:5]:
+        pairs = ", ".join(f"{c}={v}" for c, v in zip(columns, row))
+        sample_lines.append(f"  - {pairs}")
+    prompt = f"""أنت تساعد في استيراد تقرير مصاريف/إيرادات مشروع صغير من ملف Excel/CSV.
+
+أعمدة الملف: {json.dumps(columns, ensure_ascii=False)}
+
+أمثلة من الصفوف:
+{chr(10).join(sample_lines)}
+
+طابق كل عمود من الملف مع أحد هذه الحقول (استخدم اسم العمود بالضبط كما ورد، أو null إذا ما فيه عمود مناسب):
+- merchant: اسم المتجر/المورد/العميل/الوصف الرئيسي للحركة
+- amount: المبلغ المالي
+- date: تاريخ الحركة
+- category: فئة/تصنيف المصروف
+- entryType: يحدد إذا الحركة مصروف أو إيراد
+- paymentMethod: طريقة الدفع
+- description: وصف أو ملاحظات إضافية
+- projectTag: اسم مشروع أو عميل مرتبط
+
+أرجع JSON فقط بدون أي نص إضافي:
+{{"merchant": <عمود أو null>, "amount": <عمود أو null>, "date": <عمود أو null>,
+  "category": <عمود أو null>, "entryType": <عمود أو null>, "paymentMethod": <عمود أو null>,
+  "description": <عمود أو null>, "projectTag": <عمود أو null>}}"""
+    raw = chat_completion(
+        [{"role": "user", "content": prompt}],
+        max_tokens=400,
+        temperature=0.1,
+    )
+    raw = raw.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw.strip())
+
+
 def generate_business_glance_insight(summary_text):
     """One sharp business insight for the glance screen."""
     prompt = (

@@ -217,7 +217,57 @@ export const api = {
     const headers = await authHeaders();
     return axios.post(`${API_BASE}/voice/confirm`, data, { headers, timeout: 30000 });
   },
+
+  /** Upload a past expenses/income report (CSV/Excel) — parses + suggests column mapping */
+  importPreview: async (file) => {
+    const headers = await authHeaders();
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return axios.post(`${API_BASE}/business/import/preview`, form, {
+      headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+  },
+
+  /** Apply the confirmed mapping and bulk-insert the imported rows */
+  importConfirm: async (payload) => {
+    const headers = await authHeaders();
+    return axios.post(`${API_BASE}/business/import/confirm`, payload, { headers, timeout: 60000 });
+  },
+
+  /** Download raw business expenses/income as a file (csv|xlsx) */
+  exportExpenses: async ({ format = 'xlsx', days } = {}) => {
+    const headers = await authHeaders();
+    const params = { format };
+    if (days) params.days = days;
+    return axios.get(`${API_BASE}/business/export/expenses`, {
+      headers, params, responseType: 'blob', timeout: 60000,
+    });
+  },
+
+  /** Download a printable summary report (Excel) */
+  exportReport: async ({ days = 90 } = {}) => {
+    const headers = await authHeaders();
+    return axios.get(`${API_BASE}/business/export/report`, {
+      headers, params: { days }, responseType: 'blob', timeout: 60000,
+    });
+  },
 };
+
+/** Trigger a browser download from an axios blob response */
+export function downloadBlobResponse(response, fallbackName = 'download') {
+  const disposition = response.headers?.['content-disposition'] || '';
+  const match = disposition.match(/filename="?([^";]+)"?/);
+  const filename = match ? match[1] : fallbackName;
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
 
 export async function uploadReceiptFile(expenseId, file) {
   const { data } = await api.getUploadUrl(expenseId, file.name, file.type);
