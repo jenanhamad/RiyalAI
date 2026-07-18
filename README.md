@@ -18,6 +18,7 @@
 - **قصة أسبوعك (أفراد)** — Weekly Story + مشاركة
 - **مشروعك بنظرة (أعمال)** — Business Glance
 - **أعمال:** لوحة ربح، صحة المشروع، تقدير VAT، كاشف هدر
+- **استيراد/تصدير التقارير (أعمال)** — رفع تقارير مصاريف/إيرادات سابقة (CSV/Excel) مع مطابقة أعمدة تلقائية بالذكاء الاصطناعي، وتصدير بيانات خام أو تقرير ملخّص Excel
 
 ## هيكل المشروع
 
@@ -81,6 +82,10 @@ RiyalAI/
 | GET | `/business/dashboard` | لوحة الأعمال |
 | GET | `/story/weekly` | قصة أسبوعك |
 | GET | `/business/glance` | نظرة على المشروع |
+| POST | `/business/import/preview` | تحليل ملف CSV/Excel + مطابقة أعمدة (AI) |
+| POST | `/business/import/confirm` | تأكيد المطابقة واستيراد الحركات |
+| GET | `/business/export/expenses` | تصدير الحركات الخام (CSV/Excel) |
+| GET | `/business/export/report` | تصدير تقرير ملخّص (Excel) |
 
 Swagger: `/docs`
 
