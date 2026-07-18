@@ -28,7 +28,6 @@ import auth
 import email_service
 import voice_service as voice
 import seed_sample_data as seed_demo
-import seed_demo_varied
 import friends as social
 import business as biz
 import story as weekly_story
@@ -182,6 +181,7 @@ def admin_seed_demo(
         raise HTTPException(403, "Forbidden")
     try:
         if variant == "varied":
+            import seed_demo_varied
             return seed_demo_varied.main()
         return seed_demo.seed(username, replace=replace)
     except Exception as e:
